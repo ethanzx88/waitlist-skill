@@ -125,10 +125,13 @@ npm install -g @stripe/cli
 stripe agent setup
 ```
 
-也可以只接官方 MCP，让 Claude 直接读你的 Stripe 账号来核对配置：
+也可以接官方 MCP，让 agent 直接读你的 Stripe 账号来核对配置。端点是：
 
-```bash
-claude mcp add --transport http stripe https://mcp.stripe.com/
+```
+https://mcp.stripe.com/    (streamable HTTP)
 ```
 
-这两个都是可选项，本 skill 不依赖它们。
+各家 agent 挂 MCP 的方式不同（Claude Code 是 `claude mcp add --transport http stripe <端点>`，
+其他工具去各自的 MCP 配置里加），按你用的工具的文档来。
+
+**这两个都是可选项，本 skill 不依赖它们。**

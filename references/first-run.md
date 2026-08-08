@@ -147,14 +147,21 @@ publishable key，那个是设计上就可以公开的。
 
 ## 怎么打开浏览器
 
-在 Claude Code 里用内置的浏览器面板：
+**不同 agent 的浏览器能力不一样，按你手上有什么选：**
 
-```
-preview_start({ url: "https://vercel.com/signup" })
-```
+1. **有内置浏览器/预览工具** → 直接用它导航到目标 URL。
+   例如 Claude Code 的浏览器面板、其他 agent 的 browser / preview 类工具
+2. **有 shell 但没浏览器工具** → 调系统默认浏览器：
 
-环境里没有浏览器工具的话，就把链接直接给用户让他自己点，一样的效果，
-只是要写清楚「打开这个链接，登录完回来告诉我」。
+   ```bash
+   node -e "import('node:child_process').then(m=>m.exec((process.platform==='darwin'?'open ':process.platform==='win32'?'start \"\" ':'xdg-open ')+process.argv[1]))" "https://vercel.com/signup"
+   ```
+
+   写成 Node 一行是为了跨平台，`open` / `start` / `xdg-open` 三个系统各不相同。
+3. **什么都没有**（纯文本环境、CI）→ 把链接直接贴给用户让他自己点。
+   效果一样，只要写清楚「打开这个链接，弄完回来告诉我」。
+
+三种方式都可以，**不要因为没有浏览器工具就跳过引导**。
 
 **打开之后要停下来等。** 不要开完浏览器就继续跑后面的命令，
 用户还在填表你就去部署了，只会拿到一堆报错。

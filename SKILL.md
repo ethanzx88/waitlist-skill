@@ -1,6 +1,10 @@
 ---
 name: waitlist-launch
 description: 一句话把一个产品想法变成可上线的验证落地页：起名、批量查域名可用性并给购买链接、生成两段式 waitlist 页面（带定价、邮箱弹窗、Stripe 预售弹窗）、数据落进用户自己的 Google Sheet、一条命令部署到 Vercel。第一次用会引导注册登录。适用于「帮我做个 landing page」「验证一下这个想法」「做个 waitlist 页」「帮我起名查域名」「pre-launch 页面」「smoke test」「launch 一个落地页」这类请求。也用于改进已生成的落地页文案或判读跑出来的转化数据。
+compatibility: 需要 Node.js 18+ 和联网。macOS / Linux / Windows 通用。遵循 Agent Skills 开放标准，不依赖任何单一 agent 的专属能力。
+metadata:
+  author: ethanzx88
+  version: "1.1"
 ---
 
 # Waitlist Launch
@@ -8,7 +12,10 @@ description: 一句话把一个产品想法变成可上线的验证落地页：�
 把一个产品想法变成一个能收到真实信号的落地页。默认部署到 Vercel，
 数据进用户自己的 Google Sheet，生成物是单文件 HTML，可以整份转给别人用。
 
-跨平台：macOS / Linux / Windows 都能跑，命令用 Node 和 npx，不依赖任何平台特有的 shell。
+**跨平台**：macOS / Linux / Windows 都能跑，命令走 Node 和 npx，不依赖任何平台特有的 shell。
+
+**跨 agent**：遵循 Agent Skills 开放标准，不依赖任何单一 agent 的专属能力。
+遇到没有的工具（结构化提问、内置浏览器等）都有降级路径，见下面各步骤和 `references/first-run.md`。
 
 ## 硬规则
 
@@ -42,7 +49,7 @@ node scripts/preflight.mjs
 
 ## Step 1 · 一次问齐（别挤牙膏）
 
-用一次 AskUserQuestion 或一段话把这些全问了，不要一个个来回：
+**一次问完**，不要一个个来回。有结构化提问工具（选项卡片之类）就用，没有就写成一段话让他一次答：
 
 | 要问的 | 说明 |
 | --- | --- |
@@ -176,6 +183,7 @@ npx vercel deploy --prod --yes --cwd <slug>
 ## 文件
 
 ```
+scripts/install.mjs            跨 agent 安装器（--list 看检测结果）
 scripts/preflight.mjs          环境自检：Node / Vercel CLI / 登录态
 scripts/check-domains.mjs      批量查域名，RDAP + DoH 两层判定，零 credential
 scripts/check-template.mjs     检查生成的页面还有没有没填的占位符

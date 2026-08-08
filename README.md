@@ -1,162 +1,190 @@
 # waitlist-launch
 
-一个 Claude Code skill：把一句话产品想法变成可上线的验证落地页。
+**English** · [简体中文](README.zh-CN.md)
 
-- 环境自检 + 首次使用引导（缺账号会打开浏览器让你自己注册，不代办）
-- 起名 + 批量查域名可用性（零 credential）+ 给购买链接
-- 生成两段式 waitlist 落地页：带定价、邮箱弹窗、Stripe 预售弹窗
-- 数据落进**你自己的** Google Sheet，附带 view / cta_click / signup 埋点
-- 一条命令部署到 Vercel，自带免费域名
-- 生成物是单文件 HTML，改 4 个配置值就能转给朋友用
+An Agent Skill that turns a one-sentence product idea into a landing page that collects real demand signal.
 
-**跨平台**：macOS / Linux / Windows 都能跑。所有命令走 Node 和 npx，不依赖平台特有的 shell。
+- Environment preflight and first-run onboarding (opens a browser for you to sign up, never signs up on your behalf)
+- Name brainstorming, bulk domain availability checks (zero credentials), and purchase links
+- Generates a two-stage waitlist landing page: pricing, email modal, Stripe pre-order popup
+- Submissions land in **your own** Google Sheet, with view / cta_click / signup tracking built in
+- One command to deploy to Vercel, free domain included
+- Output is a single self-contained HTML file. Change four config values and hand it to a friend
 
----
+**Portable**: follows the [Agent Skills open standard](https://agentskills.io), so it runs in Claude Code, Codex CLI, Cursor, Gemini CLI, GitHub Copilot, OpenCode, Goose, Roo Code, Amp, and 40+ other tools. No agent-specific frontmatter fields are used.
 
-## 安装
+**Cross-platform**: macOS, Linux, and Windows. Every command runs through Node and npx, with no dependency on platform-specific shells.
 
-### macOS / Linux
-
-软链接（推荐，改动实时生效）：
-
-```bash
-ln -s "$(pwd)" ~/.claude/skills/waitlist-launch
-```
-
-或者直接复制：
-
-```bash
-cp -r . ~/.claude/skills/waitlist-launch
-```
-
-### Windows
-
-目录联接（推荐，改动实时生效，**不需要管理员权限**）：
-
-```powershell
-New-Item -ItemType Junction -Path "$env:USERPROFILE\.claude\skills\waitlist-launch" -Target (Get-Location).Path
-```
-
-或者直接复制：
-
-```powershell
-Copy-Item -Recurse -Force . "$env:USERPROFILE\.claude\skills\waitlist-launch"
-```
-
-装好后跟 Claude 说「帮我做个 waitlist 落地页」就会触发。
+> **Note on language**: the skill's internal documentation (`SKILL.md`, `references/`) is written in Chinese, and so is the example landing page. The template itself has no hardcoded copy, so you can ask for output in any language.
 
 ---
 
-## 用之前准备
+## Install
 
-跑一下自检，它会告诉你缺什么：
+See which agents you have:
+
+```bash
+node scripts/install.mjs --list
+```
+
+Then install to every detected location with one command:
+
+```bash
+node scripts/install.mjs
+```
+
+This installs into `~/.agents/skills/` (the tool-neutral directory) plus each detected agent's own directory (`~/.claude/skills/`, `~/.codex/skills/`, `~/.cursor/skills/`).
+
+| Flag | Effect |
+| --- | --- |
+| `--list` | Show detection results without installing |
+| `--all` | Install to every known directory, detected or not |
+| `--target claude,codex` | Install only to the named targets |
+| `--copy` | Copy instead of link (links are the default, so repo edits take effect immediately) |
+| `--uninstall` | Remove it |
+
+**Two problems the installer handles for you:**
+
+1. The spec requires the `name` in `SKILL.md` to **match its parent directory name**. This repo's folder is `waitlist_skill` while the skill is named `waitlist-launch`, so symlinking the repo directly would be non-compliant. The installer creates the directory under the correct name
+2. On Windows it creates a junction rather than a symlink, so **no admin rights are needed**
+
+### Manual install
+
+If you would rather not run the script, link or copy the repo into any of these directories. **The directory must be named `waitlist-launch`.**
+
+| Agent | User scope | Project scope |
+| --- | --- | --- |
+| Tool-neutral | `~/.agents/skills/` | `.agents/skills/` |
+| Claude Code | `~/.claude/skills/` | `.claude/skills/` |
+| Codex CLI | `~/.codex/skills/` | `.codex/skills/` |
+| Cursor | `~/.cursor/skills/` | `.cursor/skills/` |
+
+For other tools (Gemini CLI, Goose, Copilot, OpenCode, and so on) check their own docs for the skills directory. Most of them read `~/.agents/skills/`.
+
+Once installed, tell your agent "build me a waitlist landing page" and the skill triggers.
+
+### Verify the install
+
+```bash
+npx skills-ref validate ~/.agents/skills/waitlist-launch
+```
+
+`skills-ref` is the official reference validator for the standard. All four install locations pass it.
+
+Note that running it against the **repo directory itself** fails with `Directory name 'waitlist-skill' must match skill name 'waitlist-launch'`. That is expected and harmless: the spec requires the folder name to equal the skill name, and the installer already creates it under the right name. Only validate the installed path, not the clone.
+
+---
+
+## Before you start
+
+Run the preflight check. It tells you what is missing:
 
 ```bash
 node scripts/preflight.mjs
 ```
 
-| 需要 | 干什么用 | 必需？ |
+| What | Used for | Required? |
 | --- | --- | --- |
-| Node.js 18+ | 跑脚本 | 是 |
-| Vercel 账号 | 部署落地页，免费版自带 `*.vercel.app` 域名 | 是（也可换 Cloudflare / Netlify） |
-| 一个空的 Google Sheet | 收 waitlist 数据 | 是（也可退而求其次用 FormSubmit） |
-| Stripe 账号 | 预售收款 | 否，只收邮箱就不用 |
+| Node.js 18+ | Running the scripts | Yes |
+| Vercel account | Deploying the page. Free tier includes a `*.vercel.app` domain | Yes (Cloudflare / Netlify also supported) |
+| An empty Google Sheet | Collecting waitlist submissions | Yes (FormSubmit works as a fallback) |
+| Stripe account | Taking pre-orders | No, not needed if you only collect emails |
 
-第一次用不用自己配，skill 会引导：缺哪项就把浏览器打开到对应的注册/登录页。
-**它不会替你注册账号或输入密码**，只负责把你带到正确的那一页。
+You do not have to set any of this up yourself. On first run the skill walks you through it and opens a browser at the right signup or login page for whatever is missing.
+**It will never create an account or type a password for you**, it only gets you to the right page.
 
 ---
 
-## 部署
+## Deploying
 
-默认 Vercel：
+Vercel by default:
 
 ```bash
 npx vercel deploy --prod --yes --cwd <slug>
 ```
 
-首次部署自动建项目，完事给一个 `https://<项目名>-xxx.vercel.app`。
+The first deploy creates the project automatically and prints a `https://<project>-xxx.vercel.app` URL.
 
-**Vercel Hobby 免费版有两点要知道：**
+**Two things to know about the Vercel Hobby (free) plan:**
 
-1. **仅限非商业、个人用途**（官方条款写的是 non-commercial, personal use only）。
-   验证阶段挂 waitlist 页一般没事，产品真开始收钱了就该升 Pro（$20/人/月）
-2. 额度：100 GB 流量、100 万次函数调用、100 次部署/天。超了是暂停功能等 30 天，不会自动扣钱
+1. **Non-commercial, personal use only** (Vercel's own wording in their fair use guidelines).
+   Running a validation waitlist page is usually fine, but once the product actually starts charging, you should move to Pro ($20/user/month)
+2. Allowances: 100 GB data transfer, 1M function invocations, 100 deployments per day.
+   Going over pauses the feature for 30 days rather than charging you
 
-想换平台的话 Cloudflare Pages（`npx wrangler pages deploy`）和 Netlify
-（`npx netlify deploy --prod`）都支持，SKILL.md 里有命令。
-
----
-
-## 设计取舍
-
-**为什么 hero 区不放邮箱框。** 直接要邮箱收上来的全是「随便看看」。
-先让人点一下看价格，看过价格还愿意留邮箱的才是真信号。
-Buffer 当年七周只收 120 个注册，但上线后 50 人真的用了，靠的就是这个结构。
-
-**为什么必须写价格。** 没有价格的落地页测出来的只是「免费我就要」。
-
-**为什么弹窗里强制问「你现在怎么解决这个问题」。** 这一栏比邮箱本身值钱十倍，
-它把有真实痛点的人和好奇的人分开，也是后续手动回信的抓手。
-
-**为什么用 Google Sheet 而不是 Formspree 这类表单服务。** 表单服务上手确实快一行的事，
-但免费额度是硬顶（Formspree 是 50 条/月、30 天存档、不能导出），而这个模板会发
-view / cta_click / signup 三种事件来算漏斗，1000 次曝光就能把额度烧光。
-Google Sheet 没这个问题，数据还在你自己账号里。
-
-**为什么不做支付抽成。** 那需要 Stripe Connect，你要接手 connected account 的
-onboarding、KYC、资金路由、对账，等于从做工具变成做金融中介。先把工具做出来给人用。
+To use a different host, Cloudflare Pages (`npx wrangler pages deploy`) and Netlify
+(`npx netlify deploy --prod`) both work. Commands are in `SKILL.md`.
 
 ---
 
-## 单独跑脚本
+## Design decisions
 
-**环境自检**
+**Why there is no email field in the hero.** Asking for an email up front collects nothing but idle curiosity. Make people click through to see the price first. The ones who still hand over an email after seeing what it costs are the real signal. Buffer collected only 120 signups over seven weeks this way, but 50 of those people actually used the product at launch.
+
+**Why the price is mandatory.** A landing page without a price only measures "I'd take it if it were free".
+
+**Why the modal forces the question "how do you handle this today".** That field is worth ten times more than the email address next to it. It separates people with a real problem from people who are merely curious, and it gives you something concrete to open with when you follow up by hand.
+
+**Why Google Sheets instead of a form service like Formspree.** Form services are genuinely faster to wire up, one line and you are done. But the free allowances are hard ceilings (Formspree gives you 50 submissions a month, 30 days of history, and no export), and this template emits view / cta_click / signup events to compute your funnel. A thousand impressions would burn through the quota on its own. Google Sheets has no such ceiling, and the data stays in your own account.
+
+**Why there is no payment rake.** That would require Stripe Connect, which puts you on the hook for connected account onboarding, KYC, fund routing, and reconciliation. That is the jump from building a tool to being a financial intermediary. Build the tool first and get it into people's hands.
+
+---
+
+## Running the scripts on their own
+
+**Preflight**
 
 ```bash
 node scripts/preflight.mjs
 ```
 
-加 `--json` 输出机器可读结果。只检查，不安装、不登录、不注册。
+Add `--json` for machine-readable output. It only checks. It never installs, logs in, or registers anything.
 
-**查域名**
+Verify a collection endpoint (use this instead of `curl`, which is an alias for `Invoke-WebRequest` in PowerShell and takes incompatible flags):
+
+```bash
+node scripts/preflight.mjs --endpoint "<your Apps Script Web App URL>"
+```
+
+**Domain availability**
 
 ```bash
 node scripts/check-domains.mjs --names "linkloop,pagekit" --tlds "com,ai,dev"
 ```
 
-两层判定：先问 RDAP（权威），该 TLD 没有公开 RDAP 服务（`.io` `.co` `.me` `.sh` `.so` 都没有）
-就退到 DNS-over-HTTPS 查 NS 记录。`✅` 是 RDAP 结论，`🟡` 是 DNS 推断，弱一档。
-**只查不买**，买域名要你自己点购买链接付钱。
+Two-layer lookup: RDAP first, which is authoritative. For TLDs with no public RDAP service (`.io`, `.co`, `.me`, `.sh`, and `.so` among them) it falls back to a DNS-over-HTTPS NS lookup. `✅` means the RDAP answer, `🟡` means the weaker DNS inference.
 
-**检查生成的页面**
+**This script only checks availability, it never buys.** Registering a domain means clicking the purchase link and paying yourself.
+
+**Check a generated page**
 
 ```bash
 node scripts/check-template.mjs <slug>/index.html
 ```
 
-查漏填的占位符、端点配置、hero 区有没有被塞邮箱框、必填问题还在不在、
-价格写没写、有没有误把 Stripe secret key 贴进去。退出码 0 = 全过。
+Catches unfilled placeholders, endpoint misconfiguration, an email field smuggled into the hero, the required follow-up question having been removed, a missing price, and a Stripe secret key accidentally pasted into the page. Exit code 0 means everything passed.
 
 ---
 
-## 目录
+## Layout
 
 ```
-SKILL.md                       主流程
-scripts/preflight.mjs          环境自检：Node / Vercel CLI / 登录态
-scripts/check-domains.mjs      域名可用性批量检查
-scripts/check-template.mjs     生成物自检
-templates/index.html           落地页模板（39 个占位符）
-templates/apps-script.gs       Google Sheet 收集端
-references/first-run.md        首次使用引导，以及 agent 的行为边界
-references/setup-sheet.md      Sheet 端点设置
-references/setup-payment.md    Stripe 设置
-references/copy-playbook.md    文案框架 + 数据判读表
-examples/demo.html             填好的完整样例，用来对齐文案水准
+SKILL.md                       Main workflow
+scripts/install.mjs            Cross-agent installer
+scripts/preflight.mjs          Environment check: Node, Vercel CLI, auth state
+scripts/check-domains.mjs      Bulk domain availability
+scripts/check-template.mjs     Output self-check
+templates/index.html           Landing page template (39 placeholders)
+templates/apps-script.gs       Google Sheet collection endpoint
+references/first-run.md        First-run onboarding and the agent's boundaries
+references/setup-sheet.md      Sheet endpoint setup
+references/setup-payment.md    Stripe setup
+references/copy-playbook.md    Copy framework and benchmarks for reading your data
+examples/demo.html             A fully filled example, for calibrating copy quality
 ```
 
-本地看一眼样例：
+Preview the example locally:
 
 ```bash
 npx http-server examples -p 8080 -o
