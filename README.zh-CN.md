@@ -111,7 +111,10 @@ node scripts/preflight.mjs
 npx --yes vercel deploy --prod --yes --cwd <slug>
 ```
 
-首次部署自动建项目，完事给一个 `https://<项目名>-xxx.vercel.app`。
+首次部署自动建项目。注意 CLI 打印的是**部署专属 URL**，开着 Deployment Protection
+（新项目常见默认，团队账号尤其）时它会跳 Vercel SSO 登录页；公开地址是项目 alias
+（`<项目名>.vercel.app`，撞名带后缀）——跑 `npx --yes vercel inspect <打印的URL>`，
+用 Aliases 里不跳 SSO 的那个。
 
 **Vercel Hobby 免费版有两点要知道：**
 

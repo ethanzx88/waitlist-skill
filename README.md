@@ -101,7 +101,7 @@ Vercel by default:
 npx --yes vercel deploy --prod --yes --cwd <slug>
 ```
 
-The first deploy creates the project automatically and prints a `https://<project>-xxx.vercel.app` URL.
+The first deploy creates the project automatically. Note that the URL the CLI prints is the **deployment-specific** one — with Deployment Protection on (a common default, especially on team accounts) it redirects to Vercel SSO. The public address is the project alias (`<project>.vercel.app`, suffixed on name collisions): run `npx --yes vercel inspect <printed-url>` and pick the alias that opens without an SSO redirect.
 
 **Two things to know about the Vercel Hobby (free) plan:**
 

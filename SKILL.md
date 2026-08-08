@@ -157,7 +157,12 @@ npx --yes vercel deploy --prod --yes --cwd <slug>
 - 首次部署会自动创建项目，项目名取自目录名
 - 两个 `--yes`：第一个是 npx 的（首次下载 CLI 不停下来问 "Ok to proceed?"），
   第二个是 Vercel 的（跳过交互提示；CLI 检测到 agent 环境时本来也会走非交互模式）
-- 部署完会打印一个 `https://<项目名>-xxx.vercel.app` 地址，**立刻访问确认页面能打开**
+- CLI 打印的是**部署专属 URL**（带哈希）。项目开着 Deployment Protection 时
+  （新项目常见默认，团队账号尤其）它会 302 跳去 `vercel.com/sso-api` 要求登录——
+  **这不是部署失败**，但它也**不能当交付地址**
+- 公开地址这样拿：跑 `npx --yes vercel inspect <打印的URL>`，在 **Aliases** 列表里
+  找能直接打开、不跳 SSO 的那个——通常是最短的 `<项目名>.vercel.app`（撞名带后缀）。
+  **立刻访问它确认页面能打开**；之后的测试提交、交付给用户、发推广，用的全是这个地址
 - 然后让用户在线上页面提交一条测试数据，去他邮箱确认收到了通知。
   **这一步不能跳过**，端点没通的话后面的流量全白跑
 - 买了域名的话，在 Vercel 项目的 Settings → Domains 里绑定，按它给的记录去注册商配 DNS
