@@ -6,10 +6,10 @@
 
 - 环境自检 + 首次使用引导（缺账号会打开浏览器让你自己注册，不代办）
 - 起名 + 批量查域名可用性（零 credential）+ 给购买链接
-- 生成两段式 waitlist 落地页：带定价、邮箱弹窗、Stripe 预售弹窗
+- 生成两段式 waitlist 落地页：带定价、邮箱弹窗
 - 数据落进**你自己的** Google Sheet，附带 view / cta_click / signup 埋点
 - 一条命令部署到 Vercel，自带免费域名
-- 生成物是单文件 HTML，改 4 个配置值就能转给朋友用
+- 生成物是单文件 HTML，改 3 个配置值就能转给朋友用
 
 **通用性**：遵循 [Agent Skills 开放标准](https://agentskills.io)，可在 Claude Code、Codex CLI、
 Cursor、Gemini CLI、GitHub Copilot、OpenCode、Goose、Roo Code、Amp 等 40+ 工具里使用。
@@ -95,7 +95,6 @@ node scripts/preflight.mjs
 | Node.js 18+ | 跑脚本 | 是 |
 | Vercel 账号 | 部署落地页，免费版自带 `*.vercel.app` 域名 | 是（也可换 Cloudflare / Netlify） |
 | 一个空的 Google Sheet | 收 waitlist 数据 | 是（也可退而求其次用 FormSubmit） |
-| Stripe 账号 | 预售收款 | 否，只收邮箱就不用 |
 
 第一次用不用自己配，skill 会引导：缺哪项就把浏览器打开到对应的注册/登录页。
 **它不会替你注册账号或输入密码**，只负责把你带到正确的那一页。
@@ -139,8 +138,9 @@ Buffer 当年七周只收 120 个注册，但上线后 50 人真的用了，靠�
 view / cta_click / signup 三种事件来算漏斗，1000 次曝光就能把额度烧光。
 Google Sheet 没这个问题，数据还在你自己账号里。
 
-**为什么不做支付抽成。** 那需要 Stripe Connect，你要接手 connected account 的
-onboarding、KYC、资金路由、对账，等于从做工具变成做金融中介。先把工具做出来给人用。
+**为什么不做收款。** 上线前就收钱，意味着要接支付商开户、退款和纠纷处理，
+而这个产品两周后可能就被砍掉了。邮箱加上「你现在怎么解决」的回答在这个阶段已经够用，
+等 waitlist 证明了需求再接支付不迟。
 
 ---
 
@@ -178,7 +178,7 @@ node scripts/check-template.mjs <slug>/index.html
 ```
 
 查漏填的占位符、端点配置、hero 区有没有被塞邮箱框、必填问题还在不在、
-价格写没写、有没有误把 Stripe secret key 贴进去。退出码 0 = 全过。
+价格写没写。退出码 0 = 全过。
 
 ---
 
@@ -190,11 +190,10 @@ scripts/install.mjs            跨 agent 安装器
 scripts/preflight.mjs          环境自检：Node / Vercel CLI / 登录态
 scripts/check-domains.mjs      域名可用性批量检查
 scripts/check-template.mjs     生成物自检
-templates/index.html           落地页模板（39 个占位符）
+templates/index.html           落地页模板（37 个占位符）
 templates/apps-script.gs       Google Sheet 收集端
 references/first-run.md        首次使用引导，以及 agent 的行为边界
 references/setup-sheet.md      Sheet 端点设置
-references/setup-payment.md    Stripe 设置
 references/copy-playbook.md    文案框架 + 数据判读表
 examples/demo.html             填好的完整样例，用来对齐文案水准
 ```

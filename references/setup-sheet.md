@@ -104,7 +104,6 @@ Apps Script 的部署是按版本冻结的。每次改完代码，要 **管理�
 - `cta_click` 点了 hero 区的主按钮
 - `modal_open` 打开了留邮箱的弹窗
 - `signup` 真的留下了邮箱
-- `preorder_click` 点了预售按钮
 
 **算转化率**：`signup` 行数 ÷ `view` 行数。对照 `references/copy-playbook.md` 里的 benchmark 判读。
 

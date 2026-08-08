@@ -87,11 +87,6 @@ if (!price || !price.trim()) {
   passes.push(`定价已写出: ${price.trim()}`);
 }
 
-/* ---------- 6. 不该出现的东西 ---------- */
-if (/sk_(live|test)_[A-Za-z0-9]/.test(html)) {
-  problems.push("⚠️  页面里出现了 Stripe secret key（sk_ 开头）。立刻删掉并去 Stripe 后台吊销这个 key");
-}
-
 /* ---------- 输出 ---------- */
 for (const p of passes) console.log(`✅ ${p}`);
 for (const p of problems) console.log(`❌ ${p}`);

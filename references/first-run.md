@@ -1,7 +1,7 @@
 # 首次使用引导
 
 第一次跑这个 skill 的人（包括朋友拿去用的时候）通常什么都还没有：没有 Vercel 账号、
-没有建表、没有 Stripe。这份文件规定 agent 怎么把人带过这一段。
+也没有建表。这份文件规定 agent 怎么把人带过这一段。
 
 ---
 
@@ -116,32 +116,6 @@ node scripts/preflight.mjs --endpoint "<他给的 URL>"
 
 看到 `✅ 端点已就绪` 才算通。失败的话脚本会直接告诉他多半是哪一步配错了
 （最常见的是部署时「谁有访问权限」没选「任何人」）。
-
----
-
-## 环节三：Stripe（预售，可选）
-
-**只在用户明确说要做预售时才引导这一节。** 只收邮箱的话整节跳过，别增加放弃率。
-
-没账号就打开：
-
-```
-https://dashboard.stripe.com/register
-```
-
-有账号直接打开建 Payment Link 的页面：
-
-```
-https://dashboard.stripe.com/payment-links
-```
-
-剩下的按 `references/setup-payment.md` 走。
-
-提醒他：**先用测试模式**（Dashboard 左上角切 Test mode），测试卡 `4242 4242 4242 4242`，
-跑通了再换 live key。
-
-**看到他要给你 `sk_` 开头的 secret key，立刻拦下。** 这套流程只需要 `pk_` 开头的
-publishable key，那个是设计上就可以公开的。
 
 ---
 

@@ -4,25 +4,21 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Launchpad · 两小时验证一个想法</title>
-<meta name="description" content="给独立开发者的验证落地页生成器。一句话生成带定价和预售的 waitlist 页，数据进你自己的表格。">
+<meta name="description" content="给独立开发者的验证落地页生成器。一句话生成带定价的 waitlist 页，数据进你自己的表格。">
 <meta property="og:title" content="Launchpad · 两小时验证一个想法">
-<meta property="og:description" content="给独立开发者的验证落地页生成器。一句话生成带定价和预售的 waitlist 页，数据进你自己的表格。">
+<meta property="og:description" content="给独立开发者的验证落地页生成器。一句话生成带定价的 waitlist 页，数据进你自己的表格。">
 <meta property="og:type" content="website">
 <meta name="twitter:card" content="summary_large_image">
 
 <script>
 /* ==========================================================================
-   唯一需要改的地方。朋友拿去用只改这四行。
+   唯一需要改的地方。朋友拿去用只改这三行。
    ========================================================================== */
 const CONFIG = {
   // Google Apps Script 部署后拿到的 Web App URL（见 references/setup-sheet.md）
   // 想零配置的话填 "https://formsubmit.co/你的邮箱" 并把 mode 改成 "formsubmit"
   endpoint: "https://script.google.com/macros/s/DEMO_FAKE_ENDPOINT/exec",
   mode: "sheet",              // "sheet" | "formsubmit"
-
-  // 预售弹窗。不做预售就把这两行留空，按钮会自动隐藏。
-  stripeBuyButtonId: "",
-  stripePublishableKey: "",
 
   projectSlug: "launchpad"          // 多个项目共用一张表时用来区分
 };
@@ -142,7 +138,6 @@ h2 {
 .feature-list li { display: flex; gap: .6rem; font-size: .95rem; align-items: flex-start; }
 .feature-list li::before { content: "→"; color: var(--accent); flex: none; font-weight: 700; }
 .price-actions { display: grid; gap: .7rem; }
-#buy-slot:empty { display: none; }
 
 /* ---------- modal ---------- */
 .overlay {
@@ -204,7 +199,7 @@ footer a { color: var(--ink-soft); }
   <header class="hero">
     <span class="eyebrow">给一个人干活的独立开发者</span>
     <h1>想法还没写代码，先知道有没有人要</h1>
-    <p class="hero-sub">描述一句你的产品，十分钟后你有一个带定价、能收邮箱、能收预付款的落地页。数据进你自己的 Google Sheet。</p>
+    <p class="hero-sub">描述一句你的产品，十分钟后你有一个带定价、能收邮箱的落地页。数据进你自己的 Google Sheet。</p>
     <div class="btn-row">
       <a href="#pricing" class="btn btn-primary" data-track="cta_click">看看多少钱 →</a>
       <a href="#how" class="btn btn-ghost">它怎么运作</a>
@@ -217,7 +212,7 @@ footer a { color: var(--ink-soft); }
     <h2>你不是不会做，你是不知道该做哪个</h2>
     <p class="section-sub">手上五个想法，每个都得写两周才知道行不行。于是你哪个都没开始。</p>
     <div class="grid">
-      <div class="card"><h3>验证比开发还费劲</h3><p>想测一个想法，要挑建站工具、配表单、接支付、查域名、想文案。折腾两天还没发出去，热情已经耗完了。</p></div>
+      <div class="card"><h3>验证比开发还费劲</h3><p>想测一个想法，要挑建站工具、配表单、查域名、想文案。折腾两天还没发出去，热情已经耗完了。</p></div>
       <div class="card"><h3>收上来一堆邮箱，看不出真假</h3><p>三百个 waitlist 注册，上线后三个人付钱。事后才发现那三百个人只是随手点了一下。</p></div>
       <div class="card"><h3>想给朋友用，得先交出账号</h3><p>你的模板绑着你的表单服务和你的 key。朋友想用一份，你得帮他从头配一遍。</p></div>
     </div>
@@ -230,7 +225,7 @@ footer a { color: var(--ink-soft); }
     <div class="grid">
       <div class="card"><span class="step-n">1</span><h3>说一句话</h3><p>给谁、解决什么、打算收多少钱。剩下的文案框架它替你搭。</p></div>
       <div class="card"><span class="step-n">2</span><h3>给一个空表格</h3><p>粘一段脚本进你的 Google Sheet，两分钟。之后所有注册和点击都落进这张表。</p></div>
-      <div class="card"><span class="step-n">3</span><h3>拿走一个 HTML 文件</h3><p>丢到任何静态托管都能跑。想给朋友用，他改四行配置换成自己的。</p></div>
+      <div class="card"><span class="step-n">3</span><h3>拿走一个 HTML 文件</h3><p>丢到任何静态托管都能跑。想给朋友用，他改三行配置换成自己的。</p></div>
     </div>
   </section>
 
@@ -238,7 +233,7 @@ footer a { color: var(--ink-soft); }
        价格必须写出来。没有价格的落地页测出来的只是「免费我就要」。 -->
   <section id="pricing">
     <h2>定价</h2>
-    <p class="section-sub">一次买断，不订阅。产品还没上线，现在预订锁定这个价。</p>
+    <p class="section-sub">一次买断，不订阅。产品还没上线，现在加入 waitlist 锁定这个价。</p>
     <div class="price-card">
       <div>
         <span class="price-amount">$29</span>
@@ -253,8 +248,6 @@ footer a { color: var(--ink-soft); }
       </ul>
       <div class="price-actions">
         <button class="btn btn-primary" data-open-modal>加入 waitlist</button>
-        <!-- Stripe Buy Button 会注入这里，点击后 Stripe 自己弹窗结账。没配就不显示。 -->
-        <div id="buy-slot"></div>
       </div>
     </div>
   </section>
@@ -410,25 +403,6 @@ footer a { color: var(--ink-soft); }
     msg.textContent = text;
     msg.classList.add("err");
     msg.setAttribute("data-show", "true");
-  }
-
-  /* ---------- Stripe 预售弹窗 ----------
-     配了才加载。stripe-buy-button 点击后由 Stripe 自己弹出结账浮层，零后端。 */
-  if (CONFIG.stripeBuyButtonId && CONFIG.stripeBuyButtonId.indexOf("{{") !== 0 &&
-      CONFIG.stripePublishableKey && CONFIG.stripePublishableKey.indexOf("{{") !== 0) {
-    const s = document.createElement("script");
-    s.async = true;
-    s.src = "https://js.stripe.com/v3/buy-button.js";
-    document.head.appendChild(s);
-
-    const btn = document.createElement("stripe-buy-button");
-    btn.setAttribute("buy-button-id", CONFIG.stripeBuyButtonId);
-    btn.setAttribute("publishable-key", CONFIG.stripePublishableKey);
-    document.getElementById("buy-slot").appendChild(btn);
-
-    document.getElementById("buy-slot").addEventListener("click", function () {
-      track("preorder_click");
-    });
   }
 })();
 </script>

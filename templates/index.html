@@ -12,17 +12,13 @@
 
 <script>
 /* ==========================================================================
-   唯一需要改的地方。朋友拿去用只改这四行。
+   唯一需要改的地方。朋友拿去用只改这三行。
    ========================================================================== */
 const CONFIG = {
   // Google Apps Script 部署后拿到的 Web App URL（见 references/setup-sheet.md）
   // 想零配置的话填 "https://formsubmit.co/你的邮箱" 并把 mode 改成 "formsubmit"
   endpoint: "{{ENDPOINT}}",
   mode: "{{ENDPOINT_MODE}}",              // "sheet" | "formsubmit"
-
-  // 预售弹窗。不做预售就把这两行留空，按钮会自动隐藏。
-  stripeBuyButtonId: "{{STRIPE_BUY_BUTTON_ID}}",
-  stripePublishableKey: "{{STRIPE_PUBLISHABLE_KEY}}",
 
   projectSlug: "{{PROJECT_SLUG}}"          // 多个项目共用一张表时用来区分
 };
@@ -142,7 +138,6 @@ h2 {
 .feature-list li { display: flex; gap: .6rem; font-size: .95rem; align-items: flex-start; }
 .feature-list li::before { content: "→"; color: var(--accent); flex: none; font-weight: 700; }
 .price-actions { display: grid; gap: .7rem; }
-#buy-slot:empty { display: none; }
 
 /* ---------- modal ---------- */
 .overlay {
@@ -253,8 +248,6 @@ footer a { color: var(--ink-soft); }
       </ul>
       <div class="price-actions">
         <button class="btn btn-primary" data-open-modal>加入 waitlist</button>
-        <!-- Stripe Buy Button 会注入这里，点击后 Stripe 自己弹窗结账。没配就不显示。 -->
-        <div id="buy-slot"></div>
       </div>
     </div>
   </section>
@@ -410,25 +403,6 @@ footer a { color: var(--ink-soft); }
     msg.textContent = text;
     msg.classList.add("err");
     msg.setAttribute("data-show", "true");
-  }
-
-  /* ---------- Stripe 预售弹窗 ----------
-     配了才加载。stripe-buy-button 点击后由 Stripe 自己弹出结账浮层，零后端。 */
-  if (CONFIG.stripeBuyButtonId && CONFIG.stripeBuyButtonId.indexOf("{{") !== 0 &&
-      CONFIG.stripePublishableKey && CONFIG.stripePublishableKey.indexOf("{{") !== 0) {
-    const s = document.createElement("script");
-    s.async = true;
-    s.src = "https://js.stripe.com/v3/buy-button.js";
-    document.head.appendChild(s);
-
-    const btn = document.createElement("stripe-buy-button");
-    btn.setAttribute("buy-button-id", CONFIG.stripeBuyButtonId);
-    btn.setAttribute("publishable-key", CONFIG.stripePublishableKey);
-    document.getElementById("buy-slot").appendChild(btn);
-
-    document.getElementById("buy-slot").addEventListener("click", function () {
-      track("preorder_click");
-    });
   }
 })();
 </script>

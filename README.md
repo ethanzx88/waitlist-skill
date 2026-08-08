@@ -6,10 +6,10 @@ An Agent Skill that turns a one-sentence product idea into a landing page that c
 
 - Environment preflight and first-run onboarding (opens a browser for you to sign up, never signs up on your behalf)
 - Name brainstorming, bulk domain availability checks (zero credentials), and purchase links
-- Generates a two-stage waitlist landing page: pricing, email modal, Stripe pre-order popup
+- Generates a two-stage waitlist landing page: pricing and an email modal
 - Submissions land in **your own** Google Sheet, with view / cta_click / signup tracking built in
 - One command to deploy to Vercel, free domain included
-- Output is a single self-contained HTML file. Change four config values and hand it to a friend
+- Output is a single self-contained HTML file. Change three config values and hand it to a friend
 
 **Portable**: follows the [Agent Skills open standard](https://agentskills.io), so it runs in Claude Code, Codex CLI, Cursor, Gemini CLI, GitHub Copilot, OpenCode, Goose, Roo Code, Amp, and 40+ other tools. No agent-specific frontmatter fields are used.
 
@@ -88,7 +88,6 @@ node scripts/preflight.mjs
 | Node.js 18+ | Running the scripts | Yes |
 | Vercel account | Deploying the page. Free tier includes a `*.vercel.app` domain | Yes (Cloudflare / Netlify also supported) |
 | An empty Google Sheet | Collecting waitlist submissions | Yes (FormSubmit works as a fallback) |
-| Stripe account | Taking pre-orders | No, not needed if you only collect emails |
 
 You do not have to set any of this up yourself. On first run the skill walks you through it and opens a browser at the right signup or login page for whatever is missing.
 **It will never create an account or type a password for you**, it only gets you to the right page.
@@ -127,7 +126,7 @@ To use a different host, Cloudflare Pages (`npx wrangler pages deploy`) and Netl
 
 **Why Google Sheets instead of a form service like Formspree.** Form services are genuinely faster to wire up, one line and you are done. But the free allowances are hard ceilings (Formspree gives you 50 submissions a month, 30 days of history, and no export), and this template emits view / cta_click / signup events to compute your funnel. A thousand impressions would burn through the quota on its own. Google Sheets has no such ceiling, and the data stays in your own account.
 
-**Why there is no payment rake.** That would require Stripe Connect, which puts you on the hook for connected account onboarding, KYC, fund routing, and reconciliation. That is the jump from building a tool to being a financial intermediary. Build the tool first and get it into people's hands.
+**Why there is no payments step.** Taking money before launch means payment-provider onboarding, refunds, and dispute handling for a product that might get cut in two weeks. An email plus the "how do you handle this today" answer is plenty of signal at this stage. Wire up payments after the waitlist proves demand.
 
 ---
 
@@ -163,7 +162,7 @@ Two-layer lookup: RDAP first, which is authoritative. For TLDs with no public RD
 node scripts/check-template.mjs <slug>/index.html
 ```
 
-Catches unfilled placeholders, endpoint misconfiguration, an email field smuggled into the hero, the required follow-up question having been removed, a missing price, and a Stripe secret key accidentally pasted into the page. Exit code 0 means everything passed.
+Catches unfilled placeholders, endpoint misconfiguration, an email field smuggled into the hero, the required follow-up question having been removed, and a missing price. Exit code 0 means everything passed.
 
 ---
 
@@ -175,11 +174,10 @@ scripts/install.mjs            Cross-agent installer
 scripts/preflight.mjs          Environment check: Node, Vercel CLI, auth state
 scripts/check-domains.mjs      Bulk domain availability
 scripts/check-template.mjs     Output self-check
-templates/index.html           Landing page template (39 placeholders)
+templates/index.html           Landing page template (37 placeholders)
 templates/apps-script.gs       Google Sheet collection endpoint
 references/first-run.md        First-run onboarding and the agent's boundaries
 references/setup-sheet.md      Sheet endpoint setup
-references/setup-payment.md    Stripe setup
 references/copy-playbook.md    Copy framework and benchmarks for reading your data
 examples/demo.html             A fully filled example, for calibrating copy quality
 ```

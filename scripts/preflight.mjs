@@ -23,8 +23,6 @@ const LINKS = {
   vercelSignup: "https://vercel.com/signup",
   vercelLogin: "https://vercel.com/login",
   newSheet: "https://sheets.new",
-  stripeRegister: "https://dashboard.stripe.com/register",
-  stripePaymentLinks: "https://dashboard.stripe.com/payment-links",
 };
 
 /**
@@ -101,13 +99,6 @@ function manualItems() {
       ok: null,
       detail: "需要你提供",
       fix: `新建一张空表: ${LINKS.newSheet}，然后按 references/setup-sheet.md 部署 Apps Script 拿到 Web App URL`,
-    },
-    {
-      key: "stripe",
-      label: "Stripe（可选）",
-      ok: null,
-      detail: "只在做预售时需要",
-      fix: `没账号先注册: ${LINKS.stripeRegister}，然后在 ${LINKS.stripePaymentLinks} 建 Payment Link 和 Buy Button`,
     },
   ];
 }
