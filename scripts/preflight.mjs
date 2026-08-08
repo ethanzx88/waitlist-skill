@@ -167,8 +167,10 @@ async function activate(email) {
     if (sentActivation) {
       console.log("✅ 激活信已发出。");
     } else if (r.ok) {
-      console.log("✅ 这个邮箱似乎已经激活过了（提交直接成功）。");
-      console.log("   随机码在你当初的确认信里；找不到就去 https://formsubmit.co 底部重新生成。");
+      console.log("✅ 这个邮箱已经激活过了。一个邮箱只发一次激活信，");
+      console.log("   这次提交被当成一条普通报名进了你的收件箱（标题 waitlist-launch 激活），可直接删。");
+      console.log("   随机码跟邮箱绑定、不跟项目绑：直接复用上一个项目用的那串就行，");
+      console.log("   多个项目靠邮件标题里的产品名分流。找不到就去 https://formsubmit.co 底部重新生成。");
       return 0;
     } else {
       console.log(`❌ 没发出去（HTTP ${r.status}）: ${r.message}`);
@@ -207,6 +209,9 @@ function activatePage(email) {
 <p>点下面的按钮，从你的浏览器给 <b>${email}</b> 发第一次提交，触发 FormSubmit 的激活信。</p>
 <p>提交后会跳到 FormSubmit 的页面（中间可能出现一次人机验证，正常通过就行）。
 看到激活信已发送的提示后，去邮箱点 <b>Activate Form</b> 拿随机码。</p>
+<p><b>如果跳到的是普通感谢页</b>，说明这个邮箱早就激活过了（一个邮箱只发一次激活信）——
+直接复用之前项目的那串随机码即可；这次提交会以「waitlist-launch 激活」为标题
+出现在收件箱里，删掉就好。</p>
 <form action="https://formsubmit.co/${encodeURIComponent(email)}" method="POST"
       onsubmit="navigator.sendBeacon('/done')">
   <input type="hidden" name="_subject" value="waitlist-launch 激活">
@@ -232,6 +237,8 @@ function activatePage(email) {
           "  1. 去邮箱找 FormSubmit 的确认信，点 Activate Form",
           "  2. 把拿到的随机码发回来，拼成端点:",
           `     ${FORMSUBMIT}<随机码>`,
+          "\n  没收到确认信？多半是这个邮箱早就激活过了（一个邮箱只发一次激活信），",
+          "  直接复用之前项目的随机码即可，这次提交会以普通报名的形式出现在收件箱。",
         ].join("\n"));
         return;
       }
