@@ -290,8 +290,11 @@ async function verifyEndpoint(url, live) {
         signal: AbortSignal.timeout(20000),
         headers: { Accept: "application/json" },
       });
-      if (res.headers.get("cf-mitigated") === "challenge") {
-        console.log("⚠️  本机 Node 的探测被 Cloudflare 拦了（不影响浏览器访问，格式检查已通过）。");
+      // 正常的 GET 响应是 405（服务端拒绝 GET）。403 一律说明被拦
+      // （Cloudflare 的 WAF/bot 拦截不一定带 cf-mitigated 头），不能算「可达」
+      if (res.status === 403 || res.headers.get("cf-mitigated") === "challenge") {
+        console.log(`⚠️  本机 Node 的探测被拦（HTTP ${res.status}，多半是 Cloudflare。`);
+        console.log("   不影响浏览器里的访问和报名，格式检查已通过）。");
       } else {
         console.log(`✅ 服务可达（HTTP ${res.status}）`);
       }
