@@ -12,17 +12,21 @@
 
 <script>
 /* ==========================================================================
-   唯一需要改的地方。朋友拿去用只改这三行。
+   唯一需要改的地方。朋友拿去用只改这一行。
    ========================================================================== */
 const CONFIG = {
-  // Google Apps Script 部署后拿到的 Web App URL（见 references/setup-sheet.md）
-  // 想零配置的话填 "https://formsubmit.co/你的邮箱" 并把 mode 改成 "formsubmit"
-  endpoint: "{{ENDPOINT}}",
-  mode: "{{ENDPOINT_MODE}}",              // "sheet" | "formsubmit"
-
-  projectSlug: "{{PROJECT_SLUG}}"          // 多个项目共用一张表时用来区分
+  // 表单端点。Formspree 长这样: https://formspree.io/f/xxxxxxxx
+  // 不想注册账号的话填 https://formsubmit.co/你的邮箱，两者接口兼容。
+  // 建端点只要一分钟，见 references/setup-form.md
+  endpoint: "{{ENDPOINT}}"
 };
 </script>
+
+<!-- 可选：想算转化率就在这里粘 Vercel Web Analytics 的脚本。
+     Vercel 后台 → Analytics → Enable，它会给你一段带项目专属路径的 <script>，
+     那个路径每个项目都不一样，所以没法写死在模板里。
+     粘上之后：转化率 = 报名数 ÷ Analytics 里的 visitors。
+     判读标准见 references/copy-playbook.md。 -->
 
 <style>
 :root {
@@ -201,7 +205,7 @@ footer a { color: var(--ink-soft); }
     <h1>{{HEADLINE}}</h1>
     <p class="hero-sub">{{SUBHEAD}}</p>
     <div class="btn-row">
-      <a href="#pricing" class="btn btn-primary" data-track="cta_click">看看多少钱 →</a>
+      <a href="#pricing" class="btn btn-primary">看看多少钱 →</a>
       <a href="#how" class="btn btn-ghost">它怎么运作</a>
     </div>
     <p class="micro">{{HERO_MICRO}}</p>
@@ -300,60 +304,32 @@ footer a { color: var(--ink-soft); }
 
   document.getElementById("year").textContent = new Date().getFullYear();
 
-  /* ---------- 埋点 ----------
-     view / cta_click / signup 三个事件都进同一张表，
-     这样你可以直接算出 曝光 → 点击 → 留邮箱 的漏斗转化率。 */
-  function track(event, extra) {
-    const payload = Object.assign({
-      event: event,
-      project: CONFIG.projectSlug,
-      page: location.pathname + location.search,
-      referrer: document.referrer || "direct",
-      ua: navigator.userAgent
-    }, extra || {});
-    return send(payload);
-  }
-
+  /* ---------- 提交到表单端点 ----------
+     只在真的有人报名时发一次。故意不做浏览/点击埋点：
+     表单服务是按「提交条数」计费的（Formspree 免费版整个账户每月只有 50 条），
+     把每次页面浏览都发上去，一天就能把额度烧光。
+     想看访客数和转化率，用 Vercel Web Analytics（见 head 里的注释）。 */
   function send(payload) {
     if (!CONFIG.endpoint || CONFIG.endpoint.indexOf("{{") === 0) {
       console.warn("[waitlist] endpoint 没配置，这条没发出去:", payload);
-      return Promise.resolve();
+      return Promise.reject(new Error("endpoint not configured"));
     }
-    if (CONFIG.mode === "formsubmit") {
-      return fetch(CONFIG.endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Accept: "application/json" },
-        body: JSON.stringify(payload)
-      });
-    }
-    // Apps Script: 用 text/plain 发 JSON，属于 CORS simple request，不触发 preflight。
-    // no-cors 下读不到响应体，所以只能乐观判定成功，网络层失败仍会 reject。
+    // Formspree 和 FormSubmit 都是标准 CORS 接口，响应读得到，能做真正的错误处理
     return fetch(CONFIG.endpoint, {
       method: "POST",
-      mode: "no-cors",
-      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
       body: JSON.stringify(payload)
+    }).then(function (res) {
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      return res;
     });
   }
-
-  // 每个会话只记一次 view，避免刷新灌水
-  try {
-    if (!sessionStorage.getItem("wl_viewed")) {
-      sessionStorage.setItem("wl_viewed", "1");
-      track("view");
-    }
-  } catch (e) { track("view"); }
-
-  document.querySelectorAll("[data-track]").forEach(function (el) {
-    el.addEventListener("click", function () { track(el.getAttribute("data-track")); });
-  });
 
   /* ---------- 弹窗 ---------- */
   function openModal() {
     overlay.setAttribute("data-open", "true");
     document.body.style.overflow = "hidden";
     setTimeout(function () { $("#email").focus(); }, 50);
-    track("modal_open");
   }
   function closeModal() {
     overlay.removeAttribute("data-open");
@@ -386,7 +362,13 @@ footer a { color: var(--ink-soft); }
     submitBtn.disabled = true;
     submitBtn.textContent = "提交中…";
 
-    track("signup", { email: email, context: context })
+    send({
+      _subject: "新的 waitlist 报名 · {{PRODUCT_NAME}}",
+      email: email,
+      context: context,
+      page: location.href,
+      referrer: document.referrer || "direct"
+    })
       .then(function () {
         form.innerHTML =
           '<h3 style="margin:.2rem 0 .5rem">收到了 🎉</h3>' +

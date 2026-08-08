@@ -5,7 +5,8 @@
  * 用法:
  *   node preflight.mjs
  *   node preflight.mjs --json
- *   node preflight.mjs --endpoint "https://script.google.com/macros/s/.../exec"
+ *   node preflight.mjs --endpoint "https://formspree.io/f/xxxxxxxx"
+ *   node preflight.mjs --endpoint "..." --live     # 真发一条测试提交，消耗 1/50 额度
  *
  * 这个脚本只检查，不安装、不登录、不注册。
  * 缺什么由 agent 把浏览器打开到对应页面，让用户自己完成。
@@ -22,7 +23,7 @@ const run = promisify(exec);
 const LINKS = {
   vercelSignup: "https://vercel.com/signup",
   vercelLogin: "https://vercel.com/login",
-  newSheet: "https://sheets.new",
+  formspree: "https://formspree.io/register",
 };
 
 /**
@@ -94,43 +95,80 @@ async function checkVercelAuth(via) {
 function manualItems() {
   return [
     {
-      key: "sheet",
-      label: "Google Sheet",
+      key: "endpoint",
+      label: "表单端点",
       ok: null,
       detail: "需要你提供",
-      fix: `新建一张空表: ${LINKS.newSheet}，然后按 references/setup-sheet.md 部署 Apps Script 拿到 Web App URL`,
+      fix: `去 ${LINKS.formspree} 注册并建一个 Form，拿到 https://formspree.io/f/xxxxxxxx。不想注册就用 https://formsubmit.co/你的邮箱。详见 references/setup-form.md`,
     },
   ];
 }
 
 const ICON = { true: "✅", false: "❌", null: "⬜" };
 
-/** 验证 Apps Script / FormSubmit 端点是不是真的能接收数据。 */
-async function verifyEndpoint(url) {
+/**
+ * 验证表单端点。
+ *
+ * 重要限制：Formspree 对存在和不存在的表单 ID **返回一模一样的 405**
+ * （`{"error":"Please submit POST request."}`），所以光靠 GET 分辨不出真假。
+ * 唯一的真验证是发一次 POST，但那会消耗一条提交额度（免费版整个账户每月只有 50 条）。
+ *
+ * 所以默认只做「格式 + 可达性」检查，真发数据要显式加 --live。
+ */
+async function verifyEndpoint(url, live) {
   console.log(`验证端点: ${url}\n`);
 
-  if (url.includes("formsubmit.co")) {
-    console.log("✅ FormSubmit 端点。首次提交后会收到一封激活邮件，点一下才生效。");
-    return 0;
+  const isFormspree = /^https:\/\/formspree\.io\/f\/[A-Za-z0-9]+$/.test(url);
+  const isFormSubmit = /^https:\/\/formsubmit\.co\/.+/.test(url);
+
+  if (!isFormspree && !isFormSubmit) {
+    console.log("❌ 这个地址两种格式都不像。");
+    console.log("   Formspree:  https://formspree.io/f/xxxxxxxx");
+    console.log("   FormSubmit: https://formsubmit.co/你的邮箱");
+    return 1;
   }
+
+  console.log(`✅ 格式正确（${isFormspree ? "Formspree" : "FormSubmit"}）`);
 
   const c = new AbortController();
   const t = setTimeout(() => c.abort(), 20000);
   try {
-    const res = await fetch(url, { signal: c.signal, redirect: "follow" });
-    const body = (await res.text()).trim();
-    if (body.includes("waitlist endpoint is live")) {
-      console.log("✅ 端点已就绪，可以收数据了。");
+    if (!live) {
+      const res = await fetch(url, { signal: c.signal, headers: { Accept: "application/json" } });
+      // Formspree 对任何 GET 都回 405，这只说明服务活着，不代表表单 ID 有效
+      console.log(`✅ 服务可达（HTTP ${res.status}）`);
+      console.log("\n⚠️  没法在不发数据的情况下确认表单 ID 是真的。");
+      console.log("   Formspree 对真假 ID 返回同样的响应。");
+      console.log("   要做真验证就加 --live（会真的提交一条，消耗 1/50 额度）:");
+      console.log(`   node scripts/preflight.mjs --endpoint "${url}" --live`);
       return 0;
     }
-    console.log(`❌ 端点响应不对（HTTP ${res.status}）。`);
-    console.log(`   返回内容开头: ${body.slice(0, 120).replace(/\s+/g, " ")}`);
-    console.log(`\n   最常见的原因: 部署时「谁有访问权限」没选「任何人」。`);
-    console.log(`   回 Apps Script → 管理部署 → 编辑 → 改成「任何人」→ 重新部署。`);
+
+    console.log("\n发送测试提交（会消耗一条额度）…");
+    const res = await fetch(url, {
+      signal: c.signal,
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({
+        _subject: "waitlist-launch 端点测试",
+        email: "preflight@example.com",
+        context: "这是 preflight 脚本发的测试数据，可以直接删掉。",
+      }),
+    });
+    const body = (await res.text()).trim();
+
+    if (res.ok) {
+      console.log("✅ 提交成功，去邮箱确认收到了这封测试邮件。");
+      if (isFormSubmit) console.log("   FormSubmit 首次提交会先发一封激活邮件，点一下才真正生效。");
+      return 0;
+    }
+    console.log(`❌ 提交被拒（HTTP ${res.status}）`);
+    console.log(`   返回: ${body.slice(0, 200).replace(/\s+/g, " ")}`);
+    if (res.status === 429) console.log("   429 = 触发速率限制（Formspree 是每分钟 20 次），等一分钟再试。");
+    if (res.status === 404) console.log("   404 = 表单 ID 不对，回后台复制一遍。");
     return 1;
   } catch (err) {
     console.log(`❌ 请求失败: ${String(err.message)}`);
-    console.log(`   检查 URL 是不是完整的（结尾应该是 /exec）。`);
     return 1;
   } finally {
     clearTimeout(t);
@@ -150,7 +188,7 @@ async function main() {
     }
     // 用 exitCode 让进程自然退出，不用 process.exit()：
     // Windows 上 fetch 的句柄还没关就强退，libuv 会抛断言错误、退出码变成 127
-    process.exitCode = await verifyEndpoint(url);
+    process.exitCode = await verifyEndpoint(url, process.argv.includes("--live"));
     return;
   }
 
