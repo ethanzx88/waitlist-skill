@@ -16,7 +16,7 @@ An Agent Skill that turns a one-sentence product idea into a landing page that c
 
 **Cross-platform**: macOS, Linux, and Windows. Every command runs through Node and npx, with no dependency on platform-specific shells.
 
-> **Note on language**: the skill's internal documentation (`SKILL.md`, `references/`) is written in Chinese, and so is the example landing page. The template itself has no hardcoded copy, so you can ask for output in any language.
+> **Note on language**: the skill's internal documentation (`SKILL.md`, `references/`) is written in Chinese. The template itself has no hardcoded copy, so you can ask for output in any language.
 
 ---
 
@@ -60,7 +60,7 @@ If you would rather not run the script, link or copy the repo into any of these 
 | Codex CLI | `~/.codex/skills/` | `.codex/skills/` |
 | Cursor | `~/.cursor/skills/` | `.cursor/skills/` |
 
-For other tools (Gemini CLI, Goose, Copilot, OpenCode, and so on) check their own docs for the skills directory. Most of them read `~/.agents/skills/`.
+For other tools (Gemini CLI, Goose, Copilot, OpenCode, and so on) check their own docs for the skills directory. Many of them read `~/.agents/skills/`, so the neutral install above may already cover them.
 
 Once installed, tell your agent "build me a waitlist landing page" and the skill triggers.
 
@@ -141,7 +141,7 @@ To use a different host, Cloudflare Pages (`npx wrangler pages deploy`) and Netl
 node scripts/preflight.mjs
 ```
 
-Add `--json` for machine-readable output. It only checks. It never installs, logs in, or registers anything.
+It only checks. It never installs, logs in, or registers anything.
 
 Verify a collection endpoint:
 
@@ -166,16 +166,9 @@ SKILL.md                       Main workflow
 scripts/install.mjs            Cross-agent installer
 scripts/preflight.mjs          Environment check: Node, Vercel CLI, auth state
 scripts/check-template.mjs     Output self-check
-templates/index.html           Landing page template (35 placeholders)
+templates/index.html           Landing page template
 references/first-run.md        First-run onboarding and the agent's boundaries
 references/research-playbook.md Pre-launch research: where to look, what to collect, how to call it
 references/setup-form.md       Endpoint activation flow, random code, known pitfalls
-references/copy-playbook.md    Copy framework and benchmarks for reading your data
-examples/demo.html             A fully filled example, for calibrating copy quality
-```
-
-Preview the example locally:
-
-```bash
-npx http-server examples -p 8080 -o
+references/copy-playbook.md    Copy framework, benchmarks for reading your data, and a worked example
 ```

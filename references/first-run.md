@@ -1,7 +1,7 @@
 # 首次使用引导
 
 第一次跑这个 skill 的人（包括朋友拿去用的时候）通常什么都还没有：没有 Vercel 账号、
-也没有建表。这份文件规定 agent 怎么把人带过这一段。
+也没激活过收集端点。这份文件规定 agent 怎么把人带过这一段。
 
 ---
 
@@ -86,39 +86,9 @@ export VERCEL_TOKEN=xxx
 
 ## 环节二：收报名的邮箱（必需）
 
-不用注册任何账号。报名会直接发到他的邮箱，但**邮箱地址不会出现在页面代码里**——
-中间隔了一串随机码。完整原理见 `references/setup-form.md`。
-
-### 引导
-
-1. 问他一句：「报名通知发到哪个邮箱？」
-2. 拿到邮箱后，agent 代跑（这一步在本地做，页面还没上线，邮箱不会出现在任何公开文件里）：
-
-```bash
-node scripts/preflight.mjs --activate "他的邮箱"
-```
-
-3. 让他去邮箱点 FormSubmit 确认信里的 **Activate Form**，把拿到的**随机码**发回来。
-   **停下来等他**，这步只有他能做
-4. 拿到随机码，端点就是 `https://formsubmit.co/ajax/<随机码>`
-
-### 必须提前讲清楚的一条
-
-FormSubmit 没有后台、没有名单、没有导出，**收件箱就是全部数据**。
-让他顺手建一条邮箱过滤规则，按邮件标题里的产品名打标签归档——既是分流也是备份。
-
-### 验证
-
-```bash
-node scripts/preflight.mjs --endpoint "https://formsubmit.co/ajax/<随机码>"
-```
-
-默认只查格式（**会硬性拦下裸邮箱端点**，那是隐私红线）和可达性。
-部署前建议加 `--live` 真发一条测试，跑通整条链路——发之前跟他说一声，
-他邮箱里会多一封测试邮件。
-
-**不要用 `curl`。** PowerShell 里 `curl` 是 `Invoke-WebRequest` 的别名，
-`-sL` 这些参数它不认，跨平台会炸。上面这个脚本走 Node 的 fetch，三个系统行为一致。
+零账号。问一句「报名通知发到哪个邮箱？」，然后按 SKILL.md Step 4 的三步走：
+agent 代跑 `--activate` → 用户去邮箱点确认、把**随机码**发回来（**停下来等他**）→
+`--endpoint` 验证。原理和坑见 `references/setup-form.md`。
 
 ---
 
@@ -128,17 +98,11 @@ node scripts/preflight.mjs --endpoint "https://formsubmit.co/ajax/<随机码>"
 
 1. **有内置浏览器/预览工具** → 直接用它导航到目标 URL。
    例如 Claude Code 的浏览器面板、其他 agent 的 browser / preview 类工具
-2. **有 shell 但没浏览器工具** → 调系统默认浏览器：
-
-   ```bash
-   node -e "import('node:child_process').then(m=>m.exec((process.platform==='darwin'?'open ':process.platform==='win32'?'start \"\" ':'xdg-open ')+process.argv[1]))" "https://vercel.com/signup"
-   ```
-
-   写成 Node 一行是为了跨平台，`open` / `start` / `xdg-open` 三个系统各不相同。
-3. **什么都没有**（纯文本环境、CI）→ 把链接直接贴给用户让他自己点。
+2. **没有浏览器工具** → 把链接直接贴给用户让他自己点
+   （有 shell 的话，也可以按所在平台用 `open` / `start` / `xdg-open` 调系统浏览器）。
    效果一样，只要写清楚「打开这个链接，弄完回来告诉我」。
 
-三种方式都可以，**不要因为没有浏览器工具就跳过引导**。
+两种方式都可以，**不要因为没有浏览器工具就跳过引导**。
 
 **打开之后要停下来等。** 不要开完浏览器就继续跑后面的命令，
 用户还在填表你就去部署了，只会拿到一堆报错。

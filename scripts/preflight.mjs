@@ -4,7 +4,6 @@
  *
  * 用法:
  *   node preflight.mjs
- *   node preflight.mjs --json
  *   node preflight.mjs --activate "你的邮箱"        # 触发激活信，拿随机串
  *   node preflight.mjs --endpoint "https://formsubmit.co/ajax/<随机串>"
  *   node preflight.mjs --endpoint "..." --live      # 真发一条测试提交
@@ -20,11 +19,6 @@ import { exec } from "node:child_process";
 import { promisify } from "node:util";
 
 const run = promisify(exec);
-
-const LINKS = {
-  vercelSignup: "https://vercel.com/signup",
-  vercelLogin: "https://vercel.com/login",
-};
 
 const FORMSUBMIT = "https://formsubmit.co/ajax/";
 
@@ -72,12 +66,6 @@ async function tryRun(command, timeout = 20000) {
   }
 }
 
-/** 中日韩和全角字符在终端里占两列，padEnd 只按字符数算会错位。 */
-const displayWidth = (s) =>
-  [...s].reduce((w, ch) => w + (/[ᄀ-ᅟ⺀-꓏가-힣豈-﫿︰-﹏＀-｠￠-￦]/.test(ch) ? 2 : 1), 0);
-
-const padDisplay = (s, target) => s + " ".repeat(Math.max(0, target - displayWidth(s)));
-
 /** Vercel CLI 的输出会混进 banner 行，取最后一行非空内容。 */
 const lastLine = (s) => s.split(/\r?\n/).map((l) => l.trim()).filter(Boolean).pop() || "";
 
@@ -92,51 +80,49 @@ async function checkNode() {
   };
 }
 
-async function checkVercelCli() {
-  // 优先用全局安装的（快），没有再退到 npx（首次会现下载，慢一点）
-  let r = await tryRun("vercel --version", 20000);
+/**
+ * 一次 whoami 同时探测 CLI 可用性和登录态（CLI 版本号流程用不上，不单独查）。
+ * 全局命令不存在时退到 npx；npx 首次会现下载 CLI，可能要等一两分钟。
+ *
+ * 「命令不存在」的报错是各系统本地化文案，不好匹配，所以反过来认 vercel 自己的
+ * 未登录报错（英文、稳定）：匹配不上未登录就当 CLI 不可用，去试 npx。
+ */
+async function checkVercel() {
+  const notAuthed = (r) => /credentials|log ?in|not authenticated/i.test(`${r.err} ${r.out}`);
+
   let via = "global";
-  if (!r.ok) {
-    r = await tryRun("npx --yes vercel@latest --version", 180000);
+  let r = await tryRun("vercel whoami", 90000);
+  if (!r.ok && !notAuthed(r)) {
     via = "npx";
+    r = await tryRun("npx --yes vercel@latest whoami", 180000);
   }
-  return {
-    key: "vercelCli",
-    label: "Vercel CLI",
-    ok: r.ok,
-    detail: r.ok ? `${lastLine(r.out)} (${via})` : "未找到",
-    via,
-    fix: r.ok ? null : "网络或 npm 有问题。可以先手动装: npm i -g vercel",
-  };
-}
 
-async function checkVercelAuth(via) {
-  const cmd = via === "global" ? "vercel whoami" : "npx --yes vercel@latest whoami";
-  const r = await tryRun(cmd, 90000);
+  const loggedOut = !r.ok && notAuthed(r);
+  const cliOk = r.ok || loggedOut;
   const who = r.ok ? lastLine(r.out) : "";
-  const authed = r.ok && who && !/error|not authenticated|log in/i.test(who);
-  return {
-    key: "vercelAuth",
-    label: "Vercel 登录",
-    ok: !!authed,
-    detail: authed ? who : "未登录",
-    fix: authed ? null : `在你自己的终端里跑一次 \`npx vercel login\`（会弹浏览器授权）。还没账号的话先去 ${LINKS.vercelSignup} 注册。`,
-  };
-}
+  const authed = !!(r.ok && who && !/error|not authenticated|log ?in/i.test(who));
 
-function manualItems() {
   return [
     {
-      key: "endpoint",
-      label: "收报名的邮箱",
-      ok: null,
-      detail: "需要你提供",
-      fix: `报名会直接发到这个邮箱，不用注册任何账号。给了邮箱之后跑 \`node scripts/preflight.mjs --activate "你的邮箱"\` 拿随机串。详见 references/setup-form.md`,
+      key: "vercelCli",
+      label: "Vercel CLI",
+      ok: cliOk,
+      detail: cliOk ? (via === "global" ? "已装（全局）" : "可用（走 npx）") : "不可用",
+      fix: cliOk ? null : "网络或 npm 有问题。可以先手动装: npm i -g vercel",
+    },
+    {
+      key: "vercelAuth",
+      label: "Vercel 登录",
+      ok: authed,
+      detail: authed ? who : cliOk ? "未登录" : "跳过（CLI 不可用）",
+      fix: !cliOk || authed
+        ? null
+        : "在你自己的终端里跑一次 `npx vercel login`（会弹浏览器授权）。还没账号的话先去 https://vercel.com/signup 注册。",
     },
   ];
 }
 
-const ICON = { true: "✅", false: "❌", null: "⬜" };
+const ICON = { true: "✅", false: "❌" };
 
 /**
  * 触发激活信。这一步必须在部署之前做完。
@@ -151,8 +137,6 @@ async function activate(email) {
   }
 
   console.log(`触发激活信: ${email}\n`);
-  const c = new AbortController();
-  const t = setTimeout(() => c.abort(), 20000);
   try {
     const r = await fsPost(
       FORMSUBMIT + encodeURIComponent(email),
@@ -160,7 +144,7 @@ async function activate(email) {
         _subject: "waitlist-launch 激活",
         message: "这是激活请求，确认之后这封信里会带一串随机码。",
       },
-      c.signal
+      AbortSignal.timeout(20000)
     );
 
     // 对没激活过的邮箱，这个请求的预期响应就是 "This form needs Activation"，
@@ -188,8 +172,6 @@ async function activate(email) {
   } catch (err) {
     console.log(`❌ 请求失败: ${String(err.message)}`);
     return 1;
-  } finally {
-    clearTimeout(t);
   }
 }
 
@@ -230,11 +212,12 @@ async function verifyEndpoint(url, live) {
 
   console.log("✅ 格式正确（/ajax/ 端点 + 随机码，邮箱未暴露）");
 
-  const c = new AbortController();
-  const t = setTimeout(() => c.abort(), 20000);
   try {
     if (!live) {
-      const res = await fetch(url, { signal: c.signal, headers: { Accept: "application/json" } });
+      const res = await fetch(url, {
+        signal: AbortSignal.timeout(20000),
+        headers: { Accept: "application/json" },
+      });
       console.log(`✅ 服务可达（HTTP ${res.status}）`);
       console.log("\n⚠️  没法在不发数据的情况下确认这串随机码是有效的。");
       console.log("   要做真验证就加 --live，会真发一条测试提交到你邮箱:");
@@ -251,7 +234,7 @@ async function verifyEndpoint(url, live) {
         email: "preflight@example.com",
         context: "这是 preflight 脚本发的测试数据，可以直接删掉。",
       },
-      c.signal
+      AbortSignal.timeout(20000)
     );
 
     if (r.ok) {
@@ -268,14 +251,10 @@ async function verifyEndpoint(url, live) {
   } catch (err) {
     console.log(`❌ 请求失败: ${String(err.message)}`);
     return 1;
-  } finally {
-    clearTimeout(t);
   }
 }
 
 async function main() {
-  const json = process.argv.includes("--json");
-
   const actIdx = process.argv.indexOf("--activate");
   if (actIdx !== -1) {
     const email = process.argv[actIdx + 1];
@@ -303,22 +282,12 @@ async function main() {
   }
 
   const node = await checkNode();
-  const cli = await checkVercelCli();
-  const auth = cli.ok
-    ? await checkVercelAuth(cli.via)
-    : { key: "vercelAuth", label: "Vercel 登录", ok: false, detail: "跳过（CLI 不可用）", fix: null };
+  const [cli, auth] = await checkVercel();
+  const checks = [node, cli, auth];
 
-  const checks = [node, cli, auth, ...manualItems()];
-
-  if (json) {
-    console.log(JSON.stringify({ checks, links: LINKS }, null, 2));
-    return;
-  }
-
-  const width = Math.max(...checks.map((c) => displayWidth(c.label))) + 2;
   console.log("环境自检\n");
   for (const c of checks) {
-    console.log(`${ICON[String(c.ok)]} ${padDisplay(c.label, width)}${c.detail}`);
+    console.log(`${ICON[String(c.ok)]} ${c.label}: ${c.detail}`);
   }
 
   const todo = checks.filter((c) => c.fix);

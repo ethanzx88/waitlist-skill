@@ -22,7 +22,7 @@
 
 import { existsSync, mkdirSync, readFileSync, symlinkSync, rmSync, cpSync, lstatSync, readlinkSync } from "node:fs";
 import { homedir } from "node:os";
-import { join, dirname, resolve } from "node:path";
+import { join, dirname, resolve, basename } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const SKILL_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -32,21 +32,16 @@ const IS_WIN = process.platform === "win32";
 /**
  * 各家 agent 的用户级 skills 目录。
  * detect 是用来判断「这个 agent 装没装」的标志目录。
- * agents 那条是跨工具的中立位置，Codex 和 Cursor 都读它，所以永远装。
+ * agents 那条是跨工具的中立位置（部分工具会读），永远装；
+ * 各 agent 自己的目录再装一份，兜住不读中立目录的版本。
  */
 const TARGETS = [
   { key: "agents", label: "通用 (~/.agents)", dir: join(HOME, ".agents", "skills"), detect: null,
-    note: "跨工具中立目录，Codex CLI / Cursor 等会读" },
+    note: "跨工具中立目录，部分工具（较新的 Codex CLI / Cursor 等）会读" },
   { key: "claude", label: "Claude Code", dir: join(HOME, ".claude", "skills"), detect: join(HOME, ".claude") },
   { key: "codex", label: "Codex CLI", dir: join(HOME, ".codex", "skills"), detect: join(HOME, ".codex") },
   { key: "cursor", label: "Cursor", dir: join(HOME, ".cursor", "skills"), detect: join(HOME, ".cursor") },
 ];
-
-/** 中日韩和全角字符在终端里占两列，padEnd 只按字符数算会错位。 */
-const displayWidth = (s) =>
-  [...s].reduce((w, ch) => w + (/[ᄀ-ᅟ⺀-꓏가-힣豈-﫿︰-﹏＀-｠￠-￦]/.test(ch) ? 2 : 1), 0);
-
-const pad = (s, target) => s + " ".repeat(Math.max(0, target - displayWidth(s)));
 
 function skillName() {
   const fm = readFileSync(join(SKILL_ROOT, "SKILL.md"), "utf8").match(/^---\r?\n([\s\S]*?)\r?\n---/);
@@ -122,10 +117,10 @@ function install(t, name, args) {
   mkdirSync(t.dir, { recursive: true });
 
   if (args.copy) {
-    // 别把 .git 和安装目标自己复制进去
+    // 别把 .git 复制进去（filter 对目录返回 false 时整棵子树都不会再进来）
     cpSync(SKILL_ROOT, dest, {
       recursive: true,
-      filter: (src) => !src.includes(`${IS_WIN ? "\\" : "/"}.git${IS_WIN ? "\\" : "/"}`) && !src.endsWith(".git"),
+      filter: (src) => basename(src) !== ".git",
     });
     return { ...t, status: existing ? "已复制（覆盖旧的）" : "已复制" };
   }
@@ -146,7 +141,15 @@ function main() {
   const args = parseArgs();
 
   if (args.help) {
-    console.log(readFileSync(fileURLToPath(import.meta.url), "utf8").split("*/")[0].replace(/^\/\*\*|^ \* ?/gm, ""));
+    console.log(`跨 agent 安装器。把这个 skill 装到各个 agent 能读到的位置。
+
+用法:
+  node scripts/install.mjs            检测已装的 agent，装到对应目录
+  node scripts/install.mjs --list     只看检测结果，不装
+  node scripts/install.mjs --all      装到所有已知目录（不管 agent 装没装）
+  node scripts/install.mjs --target claude,codex
+  node scripts/install.mjs --copy     用复制而不是链接（默认链接，改动实时生效）
+  node scripts/install.mjs --uninstall`);
     return;
   }
 
@@ -161,8 +164,8 @@ function main() {
     for (const t of TARGETS) {
       const detected = t.detect === null ? "中立目录" : existsSync(t.detect) ? "已安装" : "未检测到";
       const state = installedAs(join(t.dir, name)) || "未装";
-      console.log(`  ${pad(t.label, 22)}${pad(detected, 12)}本 skill: ${state}`);
-      console.log(`  ${" ".repeat(22)}${t.dir}\n`);
+      console.log(`  ${t.label} · ${detected} · 本 skill: ${state}`);
+      console.log(`    ${t.dir}\n`);
     }
     console.log("跑 node scripts/install.mjs 就会装到「已安装」和「中立目录」这些位置。");
     return;
@@ -171,7 +174,7 @@ function main() {
   const results = targets.map((t) => install(t, name, args));
 
   for (const r of results) {
-    console.log(`  ${r.status.startsWith("❌") ? "" : "✅ "}${pad(r.label, 22)}${r.status}`);
+    console.log(`  ${r.status.startsWith("❌") ? "" : "✅ "}${r.label}: ${r.status}`);
     console.log(`     ${join(r.dir, name)}`);
     if (r.note) console.log(`     ${r.note}`);
     console.log();
@@ -193,8 +196,8 @@ function main() {
     ? "装好了。注意复制模式下改仓库不会同步，改完要重新跑一次。"
     : "装好了。用的是链接，改仓库文件即时生效。");
   console.log("\n没在列表里的 agent（Gemini CLI / Goose / Copilot / OpenCode 等）：");
-  console.log("查它自己的文档看 skills 目录在哪，然后 --target 或手动链过去。");
-  console.log("大部分都会读 ~/.agents/skills，上面已经装过了。");
+  console.log("查它自己的文档看 skills 目录在哪，手动链过去。");
+  console.log("不少工具会读 ~/.agents/skills，上面已经装过了，可以先试试是否已生效。");
 }
 
 main();

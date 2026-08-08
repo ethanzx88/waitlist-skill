@@ -37,7 +37,8 @@ metadata:
 node scripts/preflight.mjs
 ```
 
-2 秒出结果，告诉你 Node、Vercel CLI、Vercel 登录态各是什么情况。
+告诉你 Node、Vercel CLI、Vercel 登录态各是什么情况。装过全局 Vercel CLI 时几秒出结果；
+没装过会走 npx 现拉，首次要等一会。
 
 - **全绿** → 一句话带过（「环境都好，Vercel 已登录 xxx」），直接进 Step 1，
   **不要给老用户重放一遍教程**
@@ -122,20 +123,18 @@ node scripts/preflight.mjs --endpoint "https://formsubmit.co/ajax/<随机码>"
 
 1. `templates/index.html` 复制到 `<slug>/index.html`
 2. 填 `CONFIG.endpoint`（就这一个值）
-3. 按 `references/copy-playbook.md` 的框架写所有 `{{...}}` 文案（共 35 个）。
+3. 按 `references/copy-playbook.md` 的框架写所有 `{{...}}` 文案。
    **必须全部替换干净，一个占位符都不能留**。
-   写成什么水准可以参考 `examples/demo.html`，那是一份填好的完整样例
+   写成什么水准，对照 copy-playbook 里的「示例文案」一节
 4. 跑自检，有漏网的会打印出来：
 
 ```bash
 node scripts/check-template.mjs <slug>/index.html
 ```
 
-5. 人工再过一遍：
+5. 人工再过一遍（只查脚本查不了的两条）：
    - hero 主 CTA 是不是「看看多少钱 →」
-   - 定价区有没有真实数字
    - 三条痛点写的是**现状**还是产品功能（写成功能就是没写对，重写）
-   - 弹窗那个必填问题还在不在
 
 ## Step 6 · 部署到 Vercel（默认）
 
@@ -194,20 +193,6 @@ npx vercel deploy --prod --yes --cwd <slug>
 改完重新部署就是再跑一次 Step 6 的命令，Vercel 会覆盖同一个项目。
 
 ---
-
-## 文件
-
-```
-scripts/install.mjs            跨 agent 安装器（--list 看检测结果）
-scripts/preflight.mjs          环境自检：Node / Vercel CLI / 登录态
-scripts/check-template.mjs     检查生成的页面还有没有没填的占位符
-templates/index.html           单文件落地页模板，只有 1 个配置值要改
-references/first-run.md        首次使用引导：怎么带用户注册登录，边界在哪
-references/research-playbook.md  上线前调研：去哪查、查什么、结论怎么下
-references/setup-form.md       收集端设置：激活流程、随机码、已埋掉的坑
-references/copy-playbook.md    文案框架 + benchmark 判读表 + 回信模板
-examples/demo.html             填好的完整样例，用来对齐文案水准
-```
 
 ## 给别人用
 

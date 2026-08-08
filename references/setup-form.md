@@ -56,7 +56,7 @@ https://formsubmit.co/ajax/<随机码>
 node scripts/preflight.mjs --endpoint "https://formsubmit.co/ajax/<随机码>"
 ```
 
-真发一条测试（部署前建议跑一次，确认整条链路通）：
+真发一条测试（部署前建议跑一次，确认整条链路通。发之前跟用户说一声，他邮箱里会多一封测试邮件）：
 
 ```bash
 node scripts/preflight.mjs --endpoint "https://formsubmit.co/ajax/<随机码>" --live
@@ -64,16 +64,11 @@ node scripts/preflight.mjs --endpoint "https://formsubmit.co/ajax/<随机码>" -
 
 ---
 
-## 脚本里已经处理掉的两个坑
+## 脚本里已经埋掉的坑
 
-写自定义集成时才需要知道，用 skill 的话这两个坑已经埋好了：
-
-1. **请求必须带 Referer 头。** 没有它 FormSubmit 一律按「本地 HTML 文件直开」拒掉
-   （报错 "open this page through a web server"）。浏览器自动带，Node 脚本要手动补。
-   实测逐一排查过：起作用的是 Referer，Origin 带不带无所谓
-2. **失败也返回 HTTP 200。** 成败在 body 的 `success` 字段，而且是字符串 `"true"`/`"false"`
-   不是布尔值。只看 `res.ok` 会把「表单没激活」「被反垃圾拦下」都当成功，报名静默丢失。
-   模板和脚本都是解析 body 判断的
+FormSubmit 两个服务端行为——**请求必须带 Referer 头**、**失败也返回 HTTP 200**
+（成败在 body 的 `success` 字段）——已经在 `preflight.mjs` 的 `fsPost` 和模板的 `send()`
+里处理掉了，细节见那两处的代码注释。
 
 ## 邮件长什么样、怎么分项目
 
@@ -88,8 +83,7 @@ node scripts/preflight.mjs --endpoint "https://formsubmit.co/ajax/<随机码>" -
 
 payload 里还带 `page`（完整 URL）和 `referrer`（来源），从哪个域名、哪条推广链接来的都能看出来。
 
-**建议顺手让用户建一条邮箱过滤规则**：按标题里的产品名打标签归档。
-这既是分流，也是备份——FormSubmit 没有后台，**收件箱就是全部数据**。
+**建议顺手让用户建一条邮箱过滤规则**：按标题里的产品名打标签归档。既是分流，也是备份。
 
 ---
 

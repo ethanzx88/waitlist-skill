@@ -65,7 +65,7 @@ node scripts/install.mjs
 | Cursor | `~/.cursor/skills/` | `.cursor/skills/` |
 
 其他工具（Gemini CLI、Goose、Copilot、OpenCode 等）查各自文档找 skills 目录。
-大部分都会读 `~/.agents/skills/`。
+不少工具会读 `~/.agents/skills/`，上面的中立目录安装可能已经覆盖到了。
 
 装好后跟你的 agent 说「帮我做个 waitlist 落地页」就会触发。
 
@@ -160,7 +160,7 @@ FormSubmit 没有公布官方额度上限；验证阶段的量没问题，但没
 node scripts/preflight.mjs
 ```
 
-加 `--json` 输出机器可读结果。只检查，不安装、不登录、不注册。
+只检查，不安装、不登录、不注册。
 
 验证收集端点：
 
@@ -186,16 +186,9 @@ SKILL.md                       主流程
 scripts/install.mjs            跨 agent 安装器
 scripts/preflight.mjs          环境自检：Node / Vercel CLI / 登录态
 scripts/check-template.mjs     生成物自检
-templates/index.html           落地页模板（35 个占位符）
+templates/index.html           落地页模板
 references/first-run.md        首次使用引导，以及 agent 的行为边界
 references/research-playbook.md  上线前调研：去哪查、查什么、结论怎么下
 references/setup-form.md       收集端设置：激活流程、随机码、已埋掉的坑
-references/copy-playbook.md    文案框架 + 数据判读表
-examples/demo.html             填好的完整样例，用来对齐文案水准
-```
-
-本地看一眼样例：
-
-```bash
-npx http-server examples -p 8080 -o
+references/copy-playbook.md    文案框架 + 数据判读表 + 示例文案
 ```
