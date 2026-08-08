@@ -5,11 +5,13 @@
 一个 Agent Skill：把一句话产品想法变成能收到真实信号的验证落地页。
 
 - 环境自检 + 首次使用引导（缺账号会打开浏览器让你自己注册，不代办）
-- 起名 + 批量查域名可用性（零 credential）+ 给购买链接
+- 上线前先查一圈：现成竞品、网上的真实讨论、痛点真不真、为什么还没被人解决掉，
+  给出「照做 / 换切角 / 别做」的结论再动手
+- 起名：精选 5 个不同定位的候选让你挑
 - 生成两段式 waitlist 落地页：带定价、邮箱弹窗
-- 数据落进**你自己的** Google Sheet，附带 view / cta_click / signup 埋点
+- 报名进**你自己的** Formspree 表单（或 FormSubmit，连注册都不用）
 - 一条命令部署到 Vercel，自带免费域名
-- 生成物是单文件 HTML，改 3 个配置值就能转给朋友用
+- 生成物是单文件 HTML，改 1 个配置值就能转给朋友用
 
 **通用性**：遵循 [Agent Skills 开放标准](https://agentskills.io)，可在 Claude Code、Codex CLI、
 Cursor、Gemini CLI、GitHub Copilot、OpenCode、Goose、Roo Code、Amp 等 40+ 工具里使用。
@@ -94,7 +96,7 @@ node scripts/preflight.mjs
 | --- | --- | --- |
 | Node.js 18+ | 跑脚本 | 是 |
 | Vercel 账号 | 部署落地页，免费版自带 `*.vercel.app` 域名 | 是（也可换 Cloudflare / Netlify） |
-| 一个空的 Google Sheet | 收 waitlist 数据 | 是（也可退而求其次用 FormSubmit） |
+| 一个 Formspree 表单 | 收报名。免费版 50 条/月，**整个账户共享** | 是（不想注册就用 FormSubmit） |
 
 第一次用不用自己配，skill 会引导：缺哪项就把浏览器打开到对应的注册/登录页。
 **它不会替你注册账号或输入密码**，只负责把你带到正确的那一页。
@@ -133,10 +135,14 @@ Buffer 当年七周只收 120 个注册，但上线后 50 人真的用了，靠�
 **为什么弹窗里强制问「你现在怎么解决这个问题」。** 这一栏比邮箱本身值钱十倍，
 它把有真实痛点的人和好奇的人分开，也是后续手动回信的抓手。
 
-**为什么用 Google Sheet 而不是 Formspree 这类表单服务。** 表单服务上手确实快一行的事，
-但免费额度是硬顶（Formspree 是 50 条/月、30 天存档、不能导出），而这个模板会发
-view / cta_click / signup 三种事件来算漏斗，1000 次曝光就能把额度烧光。
-Google Sheet 没这个问题，数据还在你自己账号里。
+**为什么用表单服务，以及为什么不做点击埋点。** 接一个表单端点只要一行。
+代价是这类服务按提交条数计费，Formspree 免费版是**整个账户每月 50 条**，不是每个表单 50 条。
+所以这个页面只在真的有人报名时发一次请求。拿同一个端点记页面浏览，一天就能把一个月的额度烧光。
+想看访客数就开 Vercel Web Analytics，免费版就有，跟表单额度互不相干。
+
+**用免费版之前该知道的。** 50 条/月全账户共享，30 天存档，不能导出 CSV。
+去邮箱建一条过滤规则把通知邮件存起来，**收件箱是你唯一的完整备份**。
+另外 Formspree 官方文档里没写第 51 条会怎样，所以别踩线，提前处理。
 
 **为什么不做收款。** 上线前就收钱，意味着要接支付商开户、退款和纠纷处理，
 而这个产品两周后可能就被砍掉了。邮箱加上「你现在怎么解决」的回答在这个阶段已经够用，
@@ -157,19 +163,8 @@ node scripts/preflight.mjs
 验证收集端点（**别用 `curl`**，PowerShell 里它是 `Invoke-WebRequest` 的别名，参数不兼容）：
 
 ```bash
-node scripts/preflight.mjs --endpoint "<你的 Apps Script Web App URL>"
+node scripts/preflight.mjs --endpoint "https://formspree.io/f/xxxxxxxx"
 ```
-
-**查域名**
-
-```bash
-node scripts/check-domains.mjs --names "linkloop,pagekit" --tlds "com,ai,dev"
-```
-
-两层判定：先问 RDAP（权威），该 TLD 没有公开 RDAP 服务（`.io` `.co` `.me` `.sh` `.so` 都没有）
-就退到 DNS-over-HTTPS 查 NS 记录。`✅` 是 RDAP 结论，`🟡` 是 DNS 推断，弱一档。
-
-**只查不买**，买域名要你自己点购买链接付钱。
 
 **检查生成的页面**
 
@@ -188,12 +183,12 @@ node scripts/check-template.mjs <slug>/index.html
 SKILL.md                       主流程
 scripts/install.mjs            跨 agent 安装器
 scripts/preflight.mjs          环境自检：Node / Vercel CLI / 登录态
-scripts/check-domains.mjs      域名可用性批量检查
 scripts/check-template.mjs     生成物自检
-templates/index.html           落地页模板（37 个占位符）
-templates/apps-script.gs       Google Sheet 收集端
+templates/index.html           落地页模板（35 个占位符）
 references/first-run.md        首次使用引导，以及 agent 的行为边界
-references/setup-sheet.md      Sheet 端点设置
+references/research-playbook.md 上线前调研：去哪查、查什么、结论怎么下
+references/research-playbook.md  上线前调研：去哪查、查什么、结论怎么下
+references/setup-form.md       表单端点设置 + 免费版限制
 references/copy-playbook.md    文案框架 + 数据判读表
 examples/demo.html             填好的完整样例，用来对齐文案水准
 ```

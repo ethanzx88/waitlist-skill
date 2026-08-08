@@ -46,15 +46,16 @@ if (!endpoint) {
   problems.push("CONFIG.endpoint 没找到，模板结构被改坏了？");
 } else if (endpoint.includes("{{") || !endpoint.startsWith("http")) {
   problems.push(`CONFIG.endpoint 还不是有效地址: "${endpoint}"`);
+} else if (/^https:\/\/formspree\.io\/f\/[A-Za-z0-9]+$/.test(endpoint)) {
+  passes.push("收集端点已配置 (Formspree)");
+} else if (/^https:\/\/formsubmit\.co\/.+/.test(endpoint)) {
+  passes.push("收集端点已配置 (FormSubmit)");
 } else {
-  const mode = (html.match(/mode:\s*"([^"]*)"/) || [])[1];
-  if (mode === "sheet" && !endpoint.includes("script.google.com")) {
-    problems.push(`mode 是 "sheet" 但 endpoint 不是 Apps Script 地址: ${endpoint}`);
-  } else if (mode === "formsubmit" && !endpoint.includes("formsubmit.co")) {
-    problems.push(`mode 是 "formsubmit" 但 endpoint 不是 FormSubmit 地址: ${endpoint}`);
-  } else {
-    passes.push(`收集端点已配置 (mode=${mode})`);
-  }
+  problems.push(
+    `CONFIG.endpoint 格式不认识: "${endpoint}"\n` +
+      `   Formspree:  https://formspree.io/f/xxxxxxxx\n` +
+      `   FormSubmit: https://formsubmit.co/你的邮箱`
+  );
 }
 
 /* ---------- 3. hero 区不能有邮箱输入框 ---------- */

@@ -5,11 +5,12 @@
 An Agent Skill that turns a one-sentence product idea into a landing page that collects real demand signal.
 
 - Environment preflight and first-run onboarding (opens a browser for you to sign up, never signs up on your behalf)
-- Name brainstorming, bulk domain availability checks (zero credentials), and purchase links
+- Pre-launch research: existing products, real discussions, whether the pain is real, and why nobody has solved it yet — ends with a build / pivot / drop verdict before anything gets built
+- Name brainstorming: five curated candidates with distinct angles, you pick one
 - Generates a two-stage waitlist landing page: pricing and an email modal
-- Submissions land in **your own** Google Sheet, with view / cta_click / signup tracking built in
+- Signups land in **your own** Formspree form (or FormSubmit, which needs no account at all)
 - One command to deploy to Vercel, free domain included
-- Output is a single self-contained HTML file. Change three config values and hand it to a friend
+- Output is a single self-contained HTML file. Change one config value and hand it to a friend
 
 **Portable**: follows the [Agent Skills open standard](https://agentskills.io), so it runs in Claude Code, Codex CLI, Cursor, Gemini CLI, GitHub Copilot, OpenCode, Goose, Roo Code, Amp, and 40+ other tools. No agent-specific frontmatter fields are used.
 
@@ -87,7 +88,7 @@ node scripts/preflight.mjs
 | --- | --- | --- |
 | Node.js 18+ | Running the scripts | Yes |
 | Vercel account | Deploying the page. Free tier includes a `*.vercel.app` domain | Yes (Cloudflare / Netlify also supported) |
-| An empty Google Sheet | Collecting waitlist submissions | Yes (FormSubmit works as a fallback) |
+| A Formspree form | Collecting signups. Free tier is 50 submissions/month **account-wide** | Yes (FormSubmit needs no account at all) |
 
 You do not have to set any of this up yourself. On first run the skill walks you through it and opens a browser at the right signup or login page for whatever is missing.
 **It will never create an account or type a password for you**, it only gets you to the right page.
@@ -124,7 +125,9 @@ To use a different host, Cloudflare Pages (`npx wrangler pages deploy`) and Netl
 
 **Why the modal forces the question "how do you handle this today".** That field is worth ten times more than the email address next to it. It separates people with a real problem from people who are merely curious, and it gives you something concrete to open with when you follow up by hand.
 
-**Why Google Sheets instead of a form service like Formspree.** Form services are genuinely faster to wire up, one line and you are done. But the free allowances are hard ceilings (Formspree gives you 50 submissions a month, 30 days of history, and no export), and this template emits view / cta_click / signup events to compute your funnel. A thousand impressions would burn through the quota on its own. Google Sheets has no such ceiling, and the data stays in your own account.
+**Why a form service, and why there is no click tracking.** Wiring up a form endpoint takes one line. The catch is that form services bill by submission: Formspree's free tier is **50 a month across your whole account**, not per form. So the page deliberately fires exactly one request, when someone actually signs up. Tracking page views through the same endpoint would burn a month's quota in a day. For visitor counts, turn on Vercel Web Analytics, which is free on Hobby and independent of the form quota.
+
+**What you should know before relying on the free tier.** 50 submissions a month, shared across every form on the account. 30 days of history, and no CSV export. Set up a mail filter to archive the notification emails, because your inbox is the only complete copy you get. Formspree's own docs do not say what happens to submission 51, so move before you hit the ceiling, not after.
 
 **Why there is no payments step.** Taking money before launch means payment-provider onboarding, refunds, and dispute handling for a product that might get cut in two weeks. An email plus the "how do you handle this today" answer is plenty of signal at this stage. Wire up payments after the waitlist proves demand.
 
@@ -143,18 +146,8 @@ Add `--json` for machine-readable output. It only checks. It never installs, log
 Verify a collection endpoint (use this instead of `curl`, which is an alias for `Invoke-WebRequest` in PowerShell and takes incompatible flags):
 
 ```bash
-node scripts/preflight.mjs --endpoint "<your Apps Script Web App URL>"
+node scripts/preflight.mjs --endpoint "https://formspree.io/f/xxxxxxxx"
 ```
-
-**Domain availability**
-
-```bash
-node scripts/check-domains.mjs --names "linkloop,pagekit" --tlds "com,ai,dev"
-```
-
-Two-layer lookup: RDAP first, which is authoritative. For TLDs with no public RDAP service (`.io`, `.co`, `.me`, `.sh`, and `.so` among them) it falls back to a DNS-over-HTTPS NS lookup. `✅` means the RDAP answer, `🟡` means the weaker DNS inference.
-
-**This script only checks availability, it never buys.** Registering a domain means clicking the purchase link and paying yourself.
 
 **Check a generated page**
 
@@ -172,12 +165,12 @@ Catches unfilled placeholders, endpoint misconfiguration, an email field smuggle
 SKILL.md                       Main workflow
 scripts/install.mjs            Cross-agent installer
 scripts/preflight.mjs          Environment check: Node, Vercel CLI, auth state
-scripts/check-domains.mjs      Bulk domain availability
 scripts/check-template.mjs     Output self-check
-templates/index.html           Landing page template (37 placeholders)
-templates/apps-script.gs       Google Sheet collection endpoint
+templates/index.html           Landing page template (35 placeholders)
 references/first-run.md        First-run onboarding and the agent's boundaries
-references/setup-sheet.md      Sheet endpoint setup
+references/research-playbook.md Pre-launch research: where to look, what to conclude
+references/research-playbook.md  Pre-launch research: where to look, what to collect, how to call it
+references/setup-form.md       Form endpoint setup and free-tier limits
 references/copy-playbook.md    Copy framework and benchmarks for reading your data
 examples/demo.html             A fully filled example, for calibrating copy quality
 ```
