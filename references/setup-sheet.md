@@ -62,6 +62,12 @@ https://script.google.com/macros/s/AKfycb.................../exec
 waitlist endpoint is live
 ```
 
+或者跑脚本验（跨平台，比 curl 稳）：
+
+```bash
+node scripts/preflight.mjs --endpoint "<你的 Web App URL>"
+```
+
 看到这行就说明通了。看到报错页说明第 3 步的「谁有访问权限」没选「任何人」。
 
 ---
