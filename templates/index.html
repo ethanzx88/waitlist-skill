@@ -289,13 +289,21 @@ footer a { color: var(--ink-soft); }
         <p class="hint">我会亲自读每一条，可能会回你一封信。</p>
       </div>
 
-      <!-- 蜜罐。真人看不见，机器人会自动填。用 _honey 这个名字是因为
-           FormSubmit 认这个字段，万一提交绕过了下面的 JS，服务端也会拦一道。 -->
+      <!-- 蜜罐。真人看不见，机器人会自动填；JS 检测到有值就静默丢弃，连请求都不发。
+           拦截只发生在页面层（AJAX payload 里不带这个字段，服务端看不到它），
+           起名 _honey 只是沿用 FormSubmit 的字段约定。 -->
       <input type="text" name="_honey" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
 
       <button type="submit" class="btn btn-primary" id="submit-btn">加入</button>
       <p class="form-msg" id="form-msg"></p>
     </form>
+
+    <!-- 提交成功后显示。占位符放 HTML 里而不是 JS 字符串里：
+         文案带引号（英文撇号几乎必然出现）会把整段脚本弄成语法错误，页面静默全废。 -->
+    <div id="form-success" hidden>
+      <h3 style="margin:.2rem 0 .5rem">收到了 🎉</h3>
+      <p style="color:var(--ink-soft);margin:0;font-size:.95rem">{{SUCCESS_MESSAGE}}</p>
+    </div>
   </div>
 </div>
 
@@ -382,8 +390,9 @@ footer a { color: var(--ink-soft); }
     submitBtn.textContent = "提交中…";
 
     send({
-      // 邮件标题带产品名，多个项目共用一个邮箱时靠它分流、建过滤规则
-      _subject: "新的 waitlist 报名 · {{PRODUCT_NAME}}",
+      // 邮件标题带产品名（从 nav 的 wordmark 取，不在 JS 字符串里嵌占位符——
+      // 文案带引号会把脚本弄死），多项目共用一个邮箱时靠它分流、建过滤规则
+      _subject: "新的 waitlist 报名 · " + document.querySelector(".wordmark").textContent.trim(),
       // 邮件排版成表格，扫一眼就知道谁填了什么
       _template: "table",
       // 在邮件里直接点「回复」就是回给报名的人，不用复制粘贴地址
@@ -394,9 +403,8 @@ footer a { color: var(--ink-soft); }
       referrer: document.referrer || "direct"
     })
       .then(function () {
-        form.innerHTML =
-          '<h3 style="margin:.2rem 0 .5rem">收到了 🎉</h3>' +
-          '<p style="color:var(--ink-soft);margin:0;font-size:.95rem">{{SUCCESS_MESSAGE}}</p>';
+        form.hidden = true;
+        $("#form-success").hidden = false;
       })
       .catch(function () {
         submitBtn.disabled = false;

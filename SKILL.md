@@ -130,10 +130,11 @@ node scripts/preflight.mjs --endpoint "https://formsubmit.co/ajax/<随机码>"
 2. 填 `CONFIG.endpoint`（就这一个值）
 3. 按 `references/copy-playbook.md` 的框架写所有 `{{...}}` 文案。
    **必须全部替换干净，一个占位符都不能留**。
+   文案里别用英文双引号——有的占位符嵌在 HTML 属性里，双引号会截断属性。
    写成什么水准，对照 copy-playbook 里的「示例文案」一节
 4. 用户要非中文页面的话，把模板里写死的中文 UI 串一起翻掉：
-   nav 链接、三个按钮、弹窗的 label / placeholder / hint、JS 里的提示句
-   （提交中… / 收到了 🎉 / 两条报错），以及 `<html lang>`。
+   nav 链接、三个按钮、弹窗的 label / placeholder / hint、成功块的「收到了 🎉」、
+   JS 里的提示句（提交中… / 再试一次 / 三条报错），以及 `<html lang>`。
    占位符只覆盖营销文案，UI 串是中文写死的
 5. 跑自检，有漏网的会打印出来：
 
@@ -142,7 +143,7 @@ node scripts/check-template.mjs <slug>/index.html
 ```
 
 6. 人工再过一遍（只查脚本查不了的两条）：
-   - hero 主 CTA 是不是「看看多少钱 →」
+   - hero 主 CTA 是不是「看看多少钱 →」（非中文页面：对应语言的同义句）
    - 三条痛点写的是**现状**还是产品功能（写成功能就是没写对，重写）
 
 ## Step 6 · 部署到 Vercel（默认）
@@ -150,11 +151,12 @@ node scripts/check-template.mjs <slug>/index.html
 不做本地预览，部署本身只要 30 秒，**线上 URL 就是预览**：
 
 ```bash
-npx vercel deploy --prod --yes --cwd <slug>
+npx --yes vercel deploy --prod --yes --cwd <slug>
 ```
 
 - 首次部署会自动创建项目，项目名取自目录名
-- `--yes` 跳过所有交互提示；Vercel CLI 检测到 agent 环境时本来也会走非交互模式
+- 两个 `--yes`：第一个是 npx 的（首次下载 CLI 不停下来问 "Ok to proceed?"），
+  第二个是 Vercel 的（跳过交互提示；CLI 检测到 agent 环境时本来也会走非交互模式）
 - 部署完会打印一个 `https://<项目名>-xxx.vercel.app` 地址，**立刻访问确认页面能打开**
 - 然后让用户在线上页面提交一条测试数据，去他邮箱确认收到了通知。
   **这一步不能跳过**，端点没通的话后面的流量全白跑

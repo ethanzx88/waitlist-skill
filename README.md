@@ -98,7 +98,7 @@ You do not have to set any of this up yourself. On first run the skill walks you
 Vercel by default:
 
 ```bash
-npx vercel deploy --prod --yes --cwd <slug>
+npx --yes vercel deploy --prod --yes --cwd <slug>
 ```
 
 The first deploy creates the project automatically and prints a `https://<project>-xxx.vercel.app` URL.

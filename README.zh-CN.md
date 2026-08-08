@@ -108,7 +108,7 @@ node scripts/preflight.mjs
 默认 Vercel：
 
 ```bash
-npx vercel deploy --prod --yes --cwd <slug>
+npx --yes vercel deploy --prod --yes --cwd <slug>
 ```
 
 首次部署自动建项目，完事给一个 `https://<项目名>-xxx.vercel.app`。

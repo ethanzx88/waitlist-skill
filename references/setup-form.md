@@ -27,40 +27,20 @@ FormSubmit 官方管这个功能叫 **invisible email**：确认邮箱后发给�
 
 ---
 
-## 三步
+## 操作步骤
 
-### 1. 触发激活信（agent 可以代跑）
+跑哪些命令、什么顺序，见 SKILL.md Step 4——那是权威 runbook，这里只讲它没展开的部分：
 
-```bash
-node scripts/preflight.mjs --activate "用户的邮箱"
-```
+- **端点格式**（注意 `/ajax/` 路径：落地页用 fetch 提交，非 ajax 端点返回的是跳转页
+  不是 JSON，读不到成功失败）：
 
-看到 `✅ 激活信已发出` 就好了。
+  ```
+  https://formsubmit.co/ajax/<随机码>
+  ```
 
-### 2. 用户点确认、拿随机码（只能用户自己做）
-
-去邮箱找 FormSubmit 的确认信 → 点 **Activate Form** → 确认页/后续邮件里会给一串随机码，
-长得像 `a1b2c3d4e5f6g7h8`。让用户把随机码发回来。
-
-### 3. 填进模板并验证
-
-端点格式（注意 `/ajax/` 路径，落地页用 fetch 提交，非 ajax 端点返回的是跳转页不是 JSON）：
-
-```
-https://formsubmit.co/ajax/<随机码>
-```
-
-验证（不发数据）：
-
-```bash
-node scripts/preflight.mjs --endpoint "https://formsubmit.co/ajax/<随机码>"
-```
-
-真发一条测试（部署前建议跑一次，确认整条链路通。发之前跟用户说一声，他邮箱里会多一封测试邮件）：
-
-```bash
-node scripts/preflight.mjs --endpoint "https://formsubmit.co/ajax/<随机码>" --live
-```
+- 随机码长得像 `a1b2c3d4e5f6g7h8`，在用户点完 **Activate Form** 后的确认页或后续邮件里
+- 部署前建议用 `--endpoint "..." --live` 真发一条测试，确认整条链路通
+  （发之前跟用户说一声，他邮箱里会多一封测试邮件）
 
 ---
 
@@ -84,7 +64,6 @@ FormSubmit 两个服务端行为——**请求必须带 Referer 头**、**失败
 | `_subject: "新的 waitlist 报名 · <产品名>"` | **邮件标题自带项目名**，多项目共用一个邮箱靠它分流 |
 | `_template: "table"` | 邮件排版成表格，谁填了什么一眼看清 |
 | `_replyto: <报名者邮箱>` | 在邮件里**直接点回复**就是回给报名的人 |
-| `_honey` 蜜罐 | 服务端第二道反垃圾（页面 JS 是第一道） |
 
 payload 里还带 `page`（完整 URL）和 `referrer`（来源），从哪个域名、哪条推广链接来的都能看出来。
 
@@ -97,7 +76,8 @@ payload 里还带 `page`（完整 URL）和 `referrer`（来源），从哪个�
 - **没有后台、没有名单、没有导出。** 所有报名只存在于收件箱。真要汇总就从邮件里整理
 - **官方没有公布免费额度上限。** 验证阶段的量（每月几十条）实测没问题，但没有书面承诺
 - 随机码本身是公开的（在页面源码里），它保护的是**邮箱不暴露**，不是**不被灌垃圾**。
-  反垃圾靠 reCAPTCHA（FormSubmit 默认开）+ 双层蜜罐
+  `/ajax/` 提交没有验证码环节，反垃圾靠页面蜜罐（机器人填了值就静默丢弃，请求根本不发出）。
+  理论上有人拿着随机码能直接灌垃圾，验证期这个风险可接受
 - 换邮箱 = 重新走一遍激活，拿新随机码
 
 ## 想算转化率的话

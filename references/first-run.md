@@ -74,11 +74,9 @@ node scripts/preflight.mjs
 ### 备选：headless 环境
 
 实在没法交互式登录（比如服务器上），可以让他去
-`https://vercel.com/account/tokens` 建一个 token，然后**自己**设成环境变量：
-
-```bash
-export VERCEL_TOKEN=xxx
-```
+`https://vercel.com/account/tokens` 建一个 token，然后**自己**按所用的 shell 把它设成
+环境变量 `VERCEL_TOKEN`（bash 是 `export VERCEL_TOKEN=xxx`，PowerShell 是
+`$env:VERCEL_TOKEN="xxx"`）。
 
 **不要让他把 token 贴进聊天窗口。** 让他自己设进环境变量，你只管用。
 

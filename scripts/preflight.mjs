@@ -103,7 +103,8 @@ async function checkVercel() {
   let r = await tryRun("vercel whoami", 90000);
   if (!r.ok && !notAuthed(r)) {
     via = "npx";
-    r = await tryRun("npx --yes vercel@latest whoami", 180000);
+    // 不写 vercel@latest：和文档里部署命令的 npx 缓存键保持一致，避免拉两遍
+    r = await tryRun("npx --yes vercel whoami", 180000);
   }
 
   const loggedOut = !r.ok && notAuthed(r);
