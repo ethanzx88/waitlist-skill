@@ -1,6 +1,6 @@
 ---
 name: waitlist-launch
-description: 一句话把一个产品想法变成可上线的验证落地页：上线前调研（竞品、真实讨论、为什么还没人做成）、起名、生成两段式 waitlist 页面（带定价、邮箱弹窗）、报名进用户自己的 Formspree 表单端点、一条命令部署到 Vercel。第一次用会引导注册登录。适用于「帮我做个 landing page」「验证一下这个想法」「做个 waitlist 页」「查查这个想法有没有人做过」「帮我起名」「pre-launch 页面」「smoke test」「launch 一个落地页」这类请求。也用于改进已生成的落地页文案或判读跑出来的转化数据。
+description: 一句话把一个产品想法变成可上线的验证落地页：上线前调研（竞品、真实讨论、为什么还没人做成）、起名、生成两段式 waitlist 页面（带定价、邮箱弹窗）、报名直接发进用户邮箱（页面上不暴露邮箱地址）、一条命令部署到 Vercel。第一次用会引导注册登录。适用于「帮我做个 landing page」「验证一下这个想法」「做个 waitlist 页」「查查这个想法有没有人做过」「帮我起名」「pre-launch 页面」「smoke test」「launch 一个落地页」这类请求。也用于改进已生成的落地页文案或判读跑出来的转化数据。
 compatibility: 需要 Node.js 18+ 和联网。macOS / Linux / Windows 通用。遵循 Agent Skills 开放标准，不依赖任何单一 agent 的专属能力。
 metadata:
   author: ethanzx88
@@ -10,7 +10,7 @@ metadata:
 # Waitlist Launch
 
 把一个产品想法变成一个能收到真实信号的落地页。默认部署到 Vercel，
-报名进用户自己的表单端点（Formspree 或 FormSubmit），生成物是单文件 HTML，可以整份转给别人用。
+报名直接发进用户邮箱（零账号，页面上只出现随机码、不暴露邮箱），生成物是单文件 HTML，可以整份转给别人用。
 
 **跨平台**：macOS / Linux / Windows 都能跑，命令走 Node 和 npx，不依赖任何平台特有的 shell。
 
@@ -42,7 +42,7 @@ node scripts/preflight.mjs
 - **全绿** → 一句话带过（「环境都好，Vercel 已登录 xxx」），直接进 Step 1，
   **不要给老用户重放一遍教程**
 - **有红的** → 按 `references/first-run.md` 逐项引导。用浏览器工具打开对应页面
-  （Vercel 注册 / 登录 / `https://formspree.io/register`），**打开后停下来等用户**，别继续往下跑命令
+  （Vercel 注册 / 登录页），**打开后停下来等用户**，别继续往下跑命令
 
 ---
 
@@ -54,7 +54,7 @@ node scripts/preflight.mjs
 | --- | --- |
 | 产品一句话 | 给谁、解决什么问题 |
 | 假设价格 | 不知道就一起讨论，但**必须定一个** |
-| Formspree 端点 | 收 waitlist 用，形如 `https://formspree.io/f/xxxxxxxx`。没有就打开 `https://formspree.io/register` 让他建一个（不想注册就用 `https://formsubmit.co/他的邮箱`） |
+| 收报名的邮箱 | 报名通知直接发到这里，零账号。邮箱不会出现在页面代码里（Step 4 会换成随机码） |
 
 项目目录不用问，默认在当前目录建 `<slug>/`。
 
@@ -79,7 +79,8 @@ node scripts/preflight.mjs
 ## Step 3 · 起名：精选 5 个让用户挑
 
 页面跑在 `*.vercel.app` 上，子域名几乎不稀缺，所以**不查域名、不看注册情况**，
-起名是一个纯产品决策。**别把 20 个名字甩给用户**，按下面的流程收敛成一次选择：
+起名是一个纯产品决策，别让用户在这一步耗时间——起名拖三天是最典型的拖延。
+**别把 20 个名字甩给用户**，按下面的流程收敛成一次选择：
 
 1. 基于产品定位**内部**脑暴 12 到 20 个候选名。短、能拼、念一遍对方能写对。这一步不发给用户
 2. 挑出 **5 个最终候选**，每个附一句「为什么选它」。理由的角度要拉开，
@@ -93,27 +94,29 @@ node scripts/preflight.mjs
 4. **别在域名上花时间。** vercel.app 撞名了 Vercel 会自动加后缀，不用提前查；
    用户自己买了真域名的话，部署完去 Settings → Domains 绑，随时可以
 
-## Step 4 · 接上表单端点
+## Step 4 · 激活收集端点（拿随机码）
 
-详细步骤见 `references/setup-form.md`。要拿到的是这两种之一：
+零账号。三步，原理和坑见 `references/setup-form.md`：
 
-```
-https://formspree.io/f/xxxxxxxx      Formspree，有后台能看名单
-https://formsubmit.co/他的邮箱        FormSubmit，零注册，只有邮件
-```
-
-拿到后立刻验证（**别用 curl**，PowerShell 里 curl 是 Invoke-WebRequest 的别名，参数不兼容）：
+1. **agent 代跑**（本地触发激活信，页面还没上线，邮箱不会出现在任何公开文件里）：
 
 ```bash
-node scripts/preflight.mjs --endpoint "<他给的 URL>"
+node scripts/preflight.mjs --activate "用户的邮箱"
 ```
 
-默认只查格式和可达性，不消耗额度。加 `--live` 会真发一条测试提交，**发之前先跟用户说一声**。
+2. 让用户去邮箱点确认信里的 **Activate Form**，把拿到的**随机码**发回来。**停下来等**
+3. 端点 = `https://formsubmit.co/ajax/<随机码>`，验证一下
+   （**别用 curl**，PowerShell 里 curl 是 Invoke-WebRequest 的别名，参数不兼容）：
 
-**必须主动告诉用户这两件事**，别等他撞墙：
+```bash
+node scripts/preflight.mjs --endpoint "https://formsubmit.co/ajax/<随机码>"
+```
 
-1. Formspree 免费版是**整个账户每月 50 条**，不是每个表单 50 条。同时跑几个页面就是几个页面分这 50 条
-2. 后台只留 30 天且免费版不能导出。让他**去邮箱建一条过滤规则把通知邮件存档**，那是唯一的完整备份
+**铁律：模板里只许填随机码，永远不填裸邮箱。** 页面是公开的，裸邮箱等于挂出去给爬虫。
+`check-template.mjs` 和 `preflight.mjs` 都会硬性拦下带 `@` 的端点，被拦了就回去走激活流程。
+
+**必须主动告诉用户**：FormSubmit 没有后台、没有名单、没有导出，**收件箱就是全部数据**。
+让他建一条邮箱过滤规则按产品名归档，既分流也备份。
 
 ## Step 5 · 生成页面
 
@@ -146,14 +149,12 @@ npx vercel deploy --prod --yes --cwd <slug>
 - `--yes` 跳过所有交互提示；Vercel CLI 检测到 agent 环境时本来也会走非交互模式
 - 部署完会打印一个 `https://<项目名>-xxx.vercel.app` 地址，**立刻访问确认页面能打开**
 - 然后让用户在线上页面提交一条测试数据，去他邮箱确认收到了通知。
-  **这一步不能跳过**，端点没通的话后面的流量全白跑（这条测试会占掉 50 条额度里的 1 条，正常）
+  **这一步不能跳过**，端点没通的话后面的流量全白跑
 - 买了域名的话，在 Vercel 项目的 Settings → Domains 里绑定，按它给的记录去注册商配 DNS
-- 拿到线上域名后，回 Formspree 表单设置里把 **Restrict to domain** 填上，防止端点被别人盗用
 
-**想让用户能算转化率**，顺带引导一下 Vercel Web Analytics：后台 → Analytics → Enable，
-把它给的那段 `<script>` 粘进 `index.html` 的 `</head>` 前，再部署一次。
-那段脚本的路径每个项目都不一样，所以模板里没法预置（head 里留了注释位）。
-免费版给 5 万 events/月，够用。没有它就只能看报名的绝对数。
+**想让用户能算转化率**，顺带引导开 Vercel Web Analytics（免费版够用），
+步骤见 `references/setup-form.md` 末尾，脚本粘进模板 head 里预留的注释位，再部署一次。
+没有它就只能看报名的绝对数。
 
 部署完顺带提一句就够：Vercel 免费版仅限非商业个人用途，验证期额度管够（超了只暂停不扣钱），
 产品真开始收钱再升 Pro。
@@ -203,7 +204,7 @@ scripts/check-template.mjs     检查生成的页面还有没有没填的占位�
 templates/index.html           单文件落地页模板，只有 1 个配置值要改
 references/first-run.md        首次使用引导：怎么带用户注册登录，边界在哪
 references/research-playbook.md  上线前调研：去哪查、查什么、结论怎么下
-references/setup-form.md       表单端点设置（Formspree / FormSubmit）+ 免费版限制
+references/setup-form.md       收集端设置：激活流程、随机码、已埋掉的坑
 references/copy-playbook.md    文案框架 + benchmark 判读表 + 回信模板
 examples/demo.html             填好的完整样例，用来对齐文案水准
 ```
@@ -213,5 +214,5 @@ examples/demo.html             填好的完整样例，用来对齐文案水准
 生成出来的 `index.html` 是自包含的。朋友拿去只需要把 `CONFIG.endpoint` 换成
 他自己的表单端点，然后自己跑一次 Step 6 的部署命令。不需要你的任何 credential。
 
-注意提醒他：**Formspree 的 50 条额度是按账户算的**，他用自己的账号就是自己的 50 条，
-跟你的不冲突。但他要是一个账号跑好几个页面，那几个页面之间会互相抢额度。
+注意提醒他：他要走一遍自己的激活流程（`--activate` 他的邮箱 → 点确认 → 拿他自己的随机码），
+不能复用你的随机码，否则报名全进你的邮箱。

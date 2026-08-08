@@ -15,10 +15,14 @@
    唯一需要改的地方。朋友拿去用只改这一行。
    ========================================================================== */
 const CONFIG = {
-  // 表单端点。Formspree 长这样: https://formspree.io/f/xxxxxxxx
-  // 不想注册账号的话填 https://formsubmit.co/你的邮箱，两者接口兼容。
-  // 建端点只要一分钟，见 references/setup-form.md
-  endpoint: "https://formspree.io/f/DEMOFAKE0000"
+  // 报名收集端点。零注册，报名直接进邮箱。
+  //
+  // 这里填的是**随机串**，不是邮箱地址：
+  //   https://formsubmit.co/ajax/a1b2c3d4e5f6...
+  //
+  // 随机串是 FormSubmit 在你确认邮箱那封信里给的，作用就是让你的邮箱
+  // 不出现在这个公开文件里。设置步骤见 references/setup-form.md
+  endpoint: "https://formsubmit.co/ajax/demoRandomCode0000"
 };
 </script>
 
@@ -203,7 +207,7 @@ footer a { color: var(--ink-soft); }
   <header class="hero">
     <span class="eyebrow">给一个人干活的独立开发者</span>
     <h1>想法还没写代码，先知道有没有人要</h1>
-    <p class="hero-sub">描述一句你的产品，十分钟后你有一个带定价、能收邮箱的落地页。报名直接进你的邮箱。</p>
+    <p class="hero-sub">描述一句你的产品，十分钟后你有一个带定价、能收报名的落地页，已经上线可以发出去了。</p>
     <div class="btn-row">
       <a href="#pricing" class="btn btn-primary">看看多少钱 →</a>
       <a href="#how" class="btn btn-ghost">它怎么运作</a>
@@ -216,7 +220,7 @@ footer a { color: var(--ink-soft); }
     <h2>你不是不会做，你是不知道该做哪个</h2>
     <p class="section-sub">手上五个想法，每个都得写两周才知道行不行。于是你哪个都没开始。</p>
     <div class="grid">
-      <div class="card"><h3>验证比开发还费劲</h3><p>想测一个想法，要挑建站工具、配表单、查域名、想文案。折腾两天还没发出去，热情已经耗完了。</p></div>
+      <div class="card"><h3>验证比开发还费劲</h3><p>想测一个想法，要挑建站工具、配表单、想文案、部署上线。折腾两天还没发出去，热情已经耗完了。</p></div>
       <div class="card"><h3>收上来一堆邮箱，看不出真假</h3><p>三百个 waitlist 注册，上线后三个人付钱。事后才发现那三百个人只是随手点了一下。</p></div>
       <div class="card"><h3>想给朋友用，得先交出账号</h3><p>你的模板绑着你的表单服务和你的 key。朋友想用一份，你得帮他从头配一遍。</p></div>
     </div>
@@ -225,11 +229,11 @@ footer a { color: var(--ink-soft); }
   <!-- ============ 怎么运作 ============ -->
   <section id="how">
     <h2>怎么用</h2>
-    <p class="section-sub">三步，中间不需要你打开任何后台配置界面。</p>
+    <p class="section-sub">三步，中间不需要你注册任何新账号。</p>
     <div class="grid">
       <div class="card"><span class="step-n">1</span><h3>说一句话</h3><p>给谁、解决什么、打算收多少钱。剩下的文案框架它替你搭。</p></div>
-      <div class="card"><span class="step-n">2</span><h3>给一个表单端点</h3><p>Formspree 一分钟建一个，不想注册就直接用你的邮箱。之后每条报名都进你的收件箱。</p></div>
-      <div class="card"><span class="step-n">3</span><h3>拿走一个 HTML 文件</h3><p>丢到任何静态托管都能跑。想给朋友用，他改一行配置换成自己的。</p></div>
+      <div class="card"><span class="step-n">2</span><h3>给一个邮箱</h3><p>点一下确认信，报名从此直接进你的收件箱。页面上不会出现你的邮箱地址。</p></div>
+      <div class="card"><span class="step-n">3</span><h3>一条命令上线</h3><p>部署到 Vercel，自带免费域名。想给朋友用，他改一行配置换成自己的。</p></div>
     </div>
   </section>
 
@@ -237,7 +241,7 @@ footer a { color: var(--ink-soft); }
        价格必须写出来。没有价格的落地页测出来的只是「免费我就要」。 -->
   <section id="pricing">
     <h2>定价</h2>
-    <p class="section-sub">一次买断，不订阅。产品还没上线，现在加入 waitlist 锁定这个价。</p>
+    <p class="section-sub">一次买断，不订阅。产品还没上线，现在报名锁定这个价。</p>
     <div class="price-card">
       <div>
         <span class="price-amount">$29</span>
@@ -246,8 +250,8 @@ footer a { color: var(--ink-soft); }
       <p class="price-note">比你自己折腾两天便宜。按 $50/小时算，省下的第一次就回本了。</p>
       <ul class="feature-list">
         <li>落地页生成，含定价区和两段式 CTA</li>
-        <li>自动起名，5 个不同定位的候选直接挑</li>
-        <li>报名直接进你的邮箱，配上 Vercel Analytics 就能算转化率</li>
+        <li>上线前先查一圈：竞品、真实讨论、为什么还没人做成</li>
+        <li>报名直接进邮箱，点回复就能联系报名的人</li>
         <li>生成物可转手，不含任何人的 credential</li>
       </ul>
       <div class="price-actions">
@@ -284,7 +288,9 @@ footer a { color: var(--ink-soft); }
         <p class="hint">我会亲自读每一条，可能会回你一封信。</p>
       </div>
 
-      <input type="text" name="company" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
+      <!-- 蜜罐。真人看不见，机器人会自动填。用 _honey 这个名字是因为
+           FormSubmit 认这个字段，万一提交绕过了下面的 JS，服务端也会拦一道。 -->
+      <input type="text" name="_honey" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
 
       <button type="submit" class="btn btn-primary" id="submit-btn">加入</button>
       <p class="form-msg" id="form-msg"></p>
@@ -304,24 +310,36 @@ footer a { color: var(--ink-soft); }
 
   document.getElementById("year").textContent = new Date().getFullYear();
 
-  /* ---------- 提交到表单端点 ----------
-     只在真的有人报名时发一次。故意不做浏览/点击埋点：
-     表单服务是按「提交条数」计费的（Formspree 免费版整个账户每月只有 50 条），
-     把每次页面浏览都发上去，一天就能把额度烧光。
+  /* ---------- 提交 ----------
+     只在真的有人报名时发一次请求。故意不做浏览/点击埋点：
+     那样每次访问都会往你邮箱塞一封信，收件箱一天就废了。
      想看访客数和转化率，用 Vercel Web Analytics（见 head 里的注释）。 */
   function send(payload) {
     if (!CONFIG.endpoint || CONFIG.endpoint.indexOf("{{") === 0) {
       console.warn("[waitlist] endpoint 没配置，这条没发出去:", payload);
       return Promise.reject(new Error("endpoint not configured"));
     }
-    // Formspree 和 FormSubmit 都是标准 CORS 接口，响应读得到，能做真正的错误处理
+    // /ajax/ 端点返回 JSON 而不是跳转页，所以响应读得到。
     return fetch(CONFIG.endpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json", Accept: "application/json" },
       body: JSON.stringify(payload)
     }).then(function (res) {
-      if (!res.ok) throw new Error("HTTP " + res.status);
-      return res;
+      // 坑：FormSubmit 失败时也返回 HTTP 200，成败在 body 的 success 字段里，
+      // 而且它是字符串 "true"/"false" 不是布尔值。
+      // 只看 res.ok 的话，表单没激活、被反垃圾拦下这些情况都会被当成成功，
+      // 用户看到「收到了」但报名其实丢了。
+      return res.json().then(
+        function (data) {
+          if (String(data && data.success) !== "true") {
+            throw new Error((data && data.message) || "submission rejected");
+          }
+          return data;
+        },
+        function () {
+          throw new Error("unreadable response");
+        }
+      );
     });
   }
 
@@ -355,7 +373,7 @@ footer a { color: var(--ink-soft); }
     const email = $("#email").value.trim();
     const context = $("#context").value.trim();
 
-    if (form.querySelector('[name="company"]').value) return; // 蜜罐，机器人填了就静默丢弃
+    if (form.querySelector('[name="_honey"]').value) return; // 蜜罐，机器人填了就静默丢弃
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return fail("这个邮箱看起来不太对");
     if (context.length < 4) return fail("那一栏随便写两句就行，真的想看看你现在怎么解决的");
 
@@ -363,7 +381,12 @@ footer a { color: var(--ink-soft); }
     submitBtn.textContent = "提交中…";
 
     send({
+      // 邮件标题带产品名，多个项目共用一个邮箱时靠它分流、建过滤规则
       _subject: "新的 waitlist 报名 · Launchpad",
+      // 邮件排版成表格，扫一眼就知道谁填了什么
+      _template: "table",
+      // 在邮件里直接点「回复」就是回给报名的人，不用复制粘贴地址
+      _replyto: email,
       email: email,
       context: context,
       page: location.href,

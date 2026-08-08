@@ -8,7 +8,7 @@ An Agent Skill that turns a one-sentence product idea into a landing page that c
 - Pre-launch research: existing products, real discussions, whether the pain is real, and why nobody has solved it yet — ends with a build / pivot / drop verdict before anything gets built
 - Name brainstorming: five curated candidates with distinct angles, you pick one
 - Generates a two-stage waitlist landing page: pricing and an email modal
-- Signups land in **your own** Formspree form (or FormSubmit, which needs no account at all)
+- Signups go straight to **your inbox** — no account anywhere, and your email address never appears in the page source (a random code stands in for it)
 - One command to deploy to Vercel, free domain included
 - Output is a single self-contained HTML file. Change one config value and hand it to a friend
 
@@ -70,9 +70,7 @@ Once installed, tell your agent "build me a waitlist landing page" and the skill
 npx skills-ref validate ~/.agents/skills/waitlist-launch
 ```
 
-`skills-ref` is the official reference validator for the standard. All four install locations pass it.
-
-Note that running it against the **repo directory itself** fails with `Directory name 'waitlist-skill' must match skill name 'waitlist-launch'`. That is expected and harmless: the spec requires the folder name to equal the skill name, and the installer already creates it under the right name. Only validate the installed path, not the clone.
+`skills-ref` is the official reference validator for the standard. All four install locations pass it. Validate the installed path, not the repo clone — the clone's folder name doesn't match the skill name, so validating it directly fails the directory-name check by design.
 
 ---
 
@@ -88,7 +86,7 @@ node scripts/preflight.mjs
 | --- | --- | --- |
 | Node.js 18+ | Running the scripts | Yes |
 | Vercel account | Deploying the page. Free tier includes a `*.vercel.app` domain | Yes (Cloudflare / Netlify also supported) |
-| A Formspree form | Collecting signups. Free tier is 50 submissions/month **account-wide** | Yes (FormSubmit needs no account at all) |
+| An email address | Signup notifications go straight there. No account needed; the address never appears in the deployed page | Yes |
 
 You do not have to set any of this up yourself. On first run the skill walks you through it and opens a browser at the right signup or login page for whatever is missing.
 **It will never create an account or type a password for you**, it only gets you to the right page.
@@ -125,9 +123,11 @@ To use a different host, Cloudflare Pages (`npx wrangler pages deploy`) and Netl
 
 **Why the modal forces the question "how do you handle this today".** That field is worth ten times more than the email address next to it. It separates people with a real problem from people who are merely curious, and it gives you something concrete to open with when you follow up by hand.
 
-**Why a form service, and why there is no click tracking.** Wiring up a form endpoint takes one line. The catch is that form services bill by submission: Formspree's free tier is **50 a month across your whole account**, not per form. So the page deliberately fires exactly one request, when someone actually signs up. Tracking page views through the same endpoint would burn a month's quota in a day. For visitor counts, turn on Vercel Web Analytics, which is free on Hobby and independent of the form quota.
+**Why signups go to email, and why there is no click tracking.** Every submission becomes one email in your inbox. That is all a validation page needs — most landing pages get modest traffic, and a list you can reply to beats a dashboard you check twice. It also means the page fires exactly one request, when someone actually signs up: tracking page views the same way would flood your inbox with one email per visitor. For visitor counts, turn on Vercel Web Analytics, free on Hobby and entirely separate.
 
-**What you should know before relying on the free tier.** 50 submissions a month, shared across every form on the account. 30 days of history, and no CSV export. Set up a mail filter to archive the notification emails, because your inbox is the only complete copy you get. Formspree's own docs do not say what happens to submission 51, so move before you hit the ceiling, not after.
+**How your email stays private.** The deployed HTML never contains your address. During setup the skill triggers an activation email locally (before anything is public), you click the confirmation link, and FormSubmit hands you a random code. Only that code goes into the page. The template checker hard-rejects any endpoint containing an `@`.
+
+**Known limits.** No dashboard, no list view, no export — your inbox is the complete dataset, so set up a mail filter that tags incoming signups by the product name in the subject line. FormSubmit publishes no official volume cap; validation-scale traffic is fine, but there is no written guarantee.
 
 **Why there is no payments step.** Taking money before launch means payment-provider onboarding, refunds, and dispute handling for a product that might get cut in two weeks. An email plus the "how do you handle this today" answer is plenty of signal at this stage. Wire up payments after the waitlist proves demand.
 
@@ -143,10 +143,10 @@ node scripts/preflight.mjs
 
 Add `--json` for machine-readable output. It only checks. It never installs, logs in, or registers anything.
 
-Verify a collection endpoint (use this instead of `curl`, which is an alias for `Invoke-WebRequest` in PowerShell and takes incompatible flags):
+Verify a collection endpoint:
 
 ```bash
-node scripts/preflight.mjs --endpoint "https://formspree.io/f/xxxxxxxx"
+node scripts/preflight.mjs --endpoint "https://formsubmit.co/ajax/<random-code>"
 ```
 
 **Check a generated page**
@@ -168,9 +168,8 @@ scripts/preflight.mjs          Environment check: Node, Vercel CLI, auth state
 scripts/check-template.mjs     Output self-check
 templates/index.html           Landing page template (35 placeholders)
 references/first-run.md        First-run onboarding and the agent's boundaries
-references/research-playbook.md Pre-launch research: where to look, what to conclude
-references/research-playbook.md  Pre-launch research: where to look, what to collect, how to call it
-references/setup-form.md       Form endpoint setup and free-tier limits
+references/research-playbook.md Pre-launch research: where to look, what to collect, how to call it
+references/setup-form.md       Endpoint activation flow, random code, known pitfalls
 references/copy-playbook.md    Copy framework and benchmarks for reading your data
 examples/demo.html             A fully filled example, for calibrating copy quality
 ```

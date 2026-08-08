@@ -46,16 +46,19 @@ if (!endpoint) {
   problems.push("CONFIG.endpoint 没找到，模板结构被改坏了？");
 } else if (endpoint.includes("{{") || !endpoint.startsWith("http")) {
   problems.push(`CONFIG.endpoint 还不是有效地址: "${endpoint}"`);
-} else if (/^https:\/\/formspree\.io\/f\/[A-Za-z0-9]+$/.test(endpoint)) {
-  passes.push("收集端点已配置 (Formspree)");
-} else if (/^https:\/\/formsubmit\.co\/.+/.test(endpoint)) {
-  passes.push("收集端点已配置 (FormSubmit)");
-} else {
+} else if (!endpoint.startsWith("https://formsubmit.co/ajax/")) {
   problems.push(
-    `CONFIG.endpoint 格式不认识: "${endpoint}"\n` +
-      `   Formspree:  https://formspree.io/f/xxxxxxxx\n` +
-      `   FormSubmit: https://formsubmit.co/你的邮箱`
+    `CONFIG.endpoint 格式不对: "${endpoint}"\n` +
+      `   应该是 https://formsubmit.co/ajax/<随机码>（注意 /ajax/ 路径）`
   );
+} else if (endpoint.includes("@")) {
+  // 这个文件会被部署成公开页面，裸邮箱等于挂出去给爬虫
+  problems.push(
+    `CONFIG.endpoint 里是邮箱地址，不是随机码。部署后任何人查看源码都能拿到。\n` +
+      `   先跑: node scripts/preflight.mjs --activate "<你的邮箱>" 拿随机码`
+  );
+} else {
+  passes.push("收集端点已配置，且未暴露邮箱");
 }
 
 /* ---------- 3. hero 区不能有邮箱输入框 ---------- */
