@@ -186,7 +186,6 @@ scripts/preflight.mjs          环境自检：Node / Vercel CLI / 登录态
 scripts/check-template.mjs     生成物自检
 templates/index.html           落地页模板（35 个占位符）
 references/first-run.md        首次使用引导，以及 agent 的行为边界
-references/research-playbook.md 上线前调研：去哪查、查什么、结论怎么下
 references/research-playbook.md  上线前调研：去哪查、查什么、结论怎么下
 references/setup-form.md       表单端点设置 + 免费版限制
 references/copy-playbook.md    文案框架 + 数据判读表
