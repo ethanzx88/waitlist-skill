@@ -23,7 +23,8 @@ metadata:
    然后停下来等他自己完成。用户主动说「你帮我注册」也一样要拒绝。见 `references/first-run.md`。
 2. **绝不替用户花钱。** 不代买域名、不代升级 Vercel 付费方案、不代下单。
    最后一下必须用户自己点。
-3. **hero 区不放邮箱输入框。** 主 CTA 固定是「看看多少钱」。理由见 `references/copy-playbook.md`。
+3. **hero 区不放邮箱输入框。** 主 CTA 固定是「看看多少钱」（非中文页面用同义翻译）。
+   理由见 `references/copy-playbook.md`。
 4. **价格必须写出来**，哪怕是假设价。
 5. **弹窗里「你现在怎么解决这个问题」是必填项**，不许删。这一栏比邮箱本身值钱十倍。
 
@@ -105,6 +106,10 @@ node scripts/preflight.mjs
 node scripts/preflight.mjs --activate "用户的邮箱"
 ```
 
+   被 Cloudflare 拦了的话（403 "Just a moment"），按脚本提示改跑
+   `node scripts/preflight.mjs --activate-page "用户的邮箱"`——它会起一个本地页面并挂起等用户
+   点完（放后台跑），把它打印的链接打开给用户，让他点一下「发送激活信」
+
 2. 让用户去邮箱点确认信里的 **Activate Form**，把拿到的**随机码**发回来。**停下来等**
 3. 端点 = `https://formsubmit.co/ajax/<随机码>`，验证一下
    （**别用 curl**，PowerShell 里 curl 是 Invoke-WebRequest 的别名，参数不兼容）：
@@ -126,13 +131,17 @@ node scripts/preflight.mjs --endpoint "https://formsubmit.co/ajax/<随机码>"
 3. 按 `references/copy-playbook.md` 的框架写所有 `{{...}}` 文案。
    **必须全部替换干净，一个占位符都不能留**。
    写成什么水准，对照 copy-playbook 里的「示例文案」一节
-4. 跑自检，有漏网的会打印出来：
+4. 用户要非中文页面的话，把模板里写死的中文 UI 串一起翻掉：
+   nav 链接、三个按钮、弹窗的 label / placeholder / hint、JS 里的提示句
+   （提交中… / 收到了 🎉 / 两条报错），以及 `<html lang>`。
+   占位符只覆盖营销文案，UI 串是中文写死的
+5. 跑自检，有漏网的会打印出来：
 
 ```bash
 node scripts/check-template.mjs <slug>/index.html
 ```
 
-5. 人工再过一遍（只查脚本查不了的两条）：
+6. 人工再过一遍（只查脚本查不了的两条）：
    - hero 主 CTA 是不是「看看多少钱 →」
    - 三条痛点写的是**现状**还是产品功能（写成功能就是没写对，重写）
 

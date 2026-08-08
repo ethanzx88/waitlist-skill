@@ -5,6 +5,7 @@
  * 用法:
  *   node preflight.mjs
  *   node preflight.mjs --activate "你的邮箱"        # 触发激活信，拿随机串
+ *   node preflight.mjs --activate-page "你的邮箱"   # 被 Cloudflare 拦时的浏览器降级
  *   node preflight.mjs --endpoint "https://formsubmit.co/ajax/<随机串>"
  *   node preflight.mjs --endpoint "..." --live      # 真发一条测试提交
  *
@@ -16,6 +17,7 @@
  */
 
 import { exec } from "node:child_process";
+import { createServer } from "node:http";
 import { promisify } from "node:util";
 
 const run = promisify(exec);
@@ -23,12 +25,16 @@ const run = promisify(exec);
 const FORMSUBMIT = "https://formsubmit.co/ajax/";
 
 /**
- * FormSubmit 的两个服务端行为，脚本里到处要用:
+ * FormSubmit 的三个服务端行为，脚本里到处要用:
  *
  * 1. 请求必须带 Referer 头（实测逐一排查过: 没有它一律被当成「本地 HTML 文件直开」
  *    拒掉，Origin 带不带反而无所谓）。浏览器会自动带，但 Node 的 fetch 不带，要手动补。
  * 2. 失败也返回 HTTP 200。成败在 body 的 success 字段，且是字符串 "true"/"false"。
  *    所以判断成功只能解析 body，看 res.ok 会把失败当成功。
+ * 3. 前面有 Cloudflare，视网络环境可能对 Node 这类非浏览器客户端弹 challenge
+ *    （403 "Just a moment"，响应头 cf-mitigated: challenge）。header 补得再全也过不了
+ *    要跑 JS 的 challenge，脚本不做任何绕过——检测到就引导走 --activate-page，
+ *    让用户在真浏览器里发这一次提交。
  */
 const FS_HEADERS = {
   "Content-Type": "application/json",
@@ -44,12 +50,15 @@ async function fsPost(url, payload, signal) {
     body: JSON.stringify(payload),
   });
   const text = (await res.text()).trim();
+  const challenged =
+    res.headers.get("cf-mitigated") === "challenge" ||
+    (res.status === 403 && /just a moment|challenge/i.test(text));
   let data = null;
   try {
     data = JSON.parse(text);
   } catch {}
   const ok = data ? String(data.success) === "true" : false;
-  return { ok, status: res.status, message: (data && data.message) || text.slice(0, 200) };
+  return { ok, challenged, status: res.status, message: (data && data.message) || text.slice(0, 200) };
 }
 
 /**
@@ -131,11 +140,6 @@ const ICON = { true: "✅", false: "❌" };
  * 所以先在本地发这一次，页面还没上线，邮箱地址不会在任何公开文件里出现过。
  */
 async function activate(email) {
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    console.log(`❌ "${email}" 不像一个邮箱地址。`);
-    return 1;
-  }
-
   console.log(`触发激活信: ${email}\n`);
   try {
     const r = await fsPost(
@@ -146,6 +150,15 @@ async function activate(email) {
       },
       AbortSignal.timeout(20000)
     );
+
+    if (r.challenged) {
+      console.log("❌ 被 FormSubmit 前面的 Cloudflare 拦下了（403 challenge，Node 的 fetch 过不去）。");
+      console.log("   不用绕它，把这一次提交交给用户的真浏览器发:\n");
+      console.log(`   node scripts/preflight.mjs --activate-page "${email}"`);
+      console.log("\n   这条命令会起一个本地页面并挂起等用户点完（agent 放后台跑，");
+      console.log("   或让用户在自己终端里跑），把它打印的链接打开给用户点一下即可。");
+      return 1;
+    }
 
     // 对没激活过的邮箱，这个请求的预期响应就是 "This form needs Activation"，
     // 同时 FormSubmit 已经把激活信发出去了。这里 success=false 反而是对的。
@@ -173,6 +186,64 @@ async function activate(email) {
     console.log(`❌ 请求失败: ${String(err.message)}`);
     return 1;
   }
+}
+
+/**
+ * --activate 的浏览器降级：Cloudflare 对 Node 弹 challenge 时，起一个一次性
+ * localhost 页面，让用户在真浏览器里点一下按钮，由浏览器发第一次提交
+ * （challenge 该弹就弹，用户正常过，不做任何绕过）。
+ *
+ * 走 localhost 而不是直接写个本地 HTML 文件，是因为 file:// 直开没有 Referer，
+ * 会被 FormSubmit 按「本地文件」拒掉。邮箱只出现在这个本地页面里，不进任何会部署的文件。
+ *
+ * 页面提交前会给本进程发个 beacon，收到就关服务退出；兜底 10 分钟超时。
+ */
+function activatePage(email) {
+  const page = `<!doctype html><html lang="zh-CN"><meta charset="utf-8">
+<title>waitlist-launch 激活</title>
+<body style="font-family:system-ui;max-width:34rem;margin:4rem auto;padding:0 1rem;line-height:1.7">
+<h2>发送激活信</h2>
+<p>点下面的按钮，从你的浏览器给 <b>${email}</b> 发第一次提交，触发 FormSubmit 的激活信。</p>
+<p>提交后会跳到 FormSubmit 的页面（中间可能出现一次人机验证，正常通过就行）。
+看到激活信已发送的提示后，去邮箱点 <b>Activate Form</b> 拿随机码。</p>
+<form action="https://formsubmit.co/${encodeURIComponent(email)}" method="POST"
+      onsubmit="navigator.sendBeacon('/done')">
+  <input type="hidden" name="_subject" value="waitlist-launch 激活">
+  <input type="hidden" name="message" value="这是激活请求，确认之后就能拿到随机码。">
+  <button style="font-size:1.05rem;padding:.6rem 1.4rem;cursor:pointer">发送激活信</button>
+</form></body></html>`;
+
+  return new Promise((resolve) => {
+    let timer;
+    const finish = (code, msg) => {
+      clearTimeout(timer);
+      // close() 只是不收新连接，浏览器的 keep-alive 空闲连接会拖住进程退出，要主动断
+      srv.close();
+      srv.closeAllConnections();
+      console.log(msg);
+      resolve(code);
+    };
+    const srv = createServer((req, res) => {
+      if (req.url === "/done") {
+        res.end();
+        finish(0, [
+          "\n✅ 提交已从浏览器发出。接下来（只能用户自己做）:",
+          "  1. 去邮箱找 FormSubmit 的确认信，点 Activate Form",
+          "  2. 把拿到的随机码发回来，拼成端点:",
+          `     ${FORMSUBMIT}<随机码>`,
+        ].join("\n"));
+        return;
+      }
+      res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+      res.end(page);
+    });
+    srv.listen(0, "127.0.0.1", () => {
+      console.log("在浏览器里打开这个本地页面，点「发送激活信」:\n");
+      console.log(`   http://127.0.0.1:${srv.address().port}/\n`);
+      console.log("等用户点完这条命令会自己退出（最多等 10 分钟）。");
+      timer = setTimeout(() => finish(1, "\n⌛ 10 分钟没等到提交，先退出了。需要就重跑一次。"), 10 * 60 * 1000);
+    });
+  });
 }
 
 /**
@@ -218,7 +289,11 @@ async function verifyEndpoint(url, live) {
         signal: AbortSignal.timeout(20000),
         headers: { Accept: "application/json" },
       });
-      console.log(`✅ 服务可达（HTTP ${res.status}）`);
+      if (res.headers.get("cf-mitigated") === "challenge") {
+        console.log("⚠️  本机 Node 的探测被 Cloudflare 拦了（不影响浏览器访问，格式检查已通过）。");
+      } else {
+        console.log(`✅ 服务可达（HTTP ${res.status}）`);
+      }
       console.log("\n⚠️  没法在不发数据的情况下确认这串随机码是有效的。");
       console.log("   要做真验证就加 --live，会真发一条测试提交到你邮箱:");
       console.log(`   node scripts/preflight.mjs --endpoint "${url}" --live`);
@@ -241,6 +316,11 @@ async function verifyEndpoint(url, live) {
       console.log("✅ 提交成功，去邮箱确认收到了这封测试邮件。");
       return 0;
     }
+    if (r.challenged) {
+      console.log("❌ 测试提交被 Cloudflare 拦了（Node 过不去 challenge，不代表随机码有问题）。");
+      console.log("   改用部署后的线上页面发一条真测试——Step 6 本来就必做这一步。");
+      return 1;
+    }
     console.log(`❌ 提交被拒: ${r.message}`);
     if (/activat/i.test(r.message)) {
       console.log("   表单还没激活。去邮箱点确认链接，或重跑 --activate。");
@@ -255,15 +335,21 @@ async function verifyEndpoint(url, live) {
 }
 
 async function main() {
-  const actIdx = process.argv.indexOf("--activate");
-  if (actIdx !== -1) {
-    const email = process.argv[actIdx + 1];
+  for (const flag of ["--activate", "--activate-page"]) {
+    const i = process.argv.indexOf(flag);
+    if (i === -1) continue;
+    const email = process.argv[i + 1];
     if (!email) {
-      console.error("--activate 后面要跟邮箱地址");
+      console.error(`${flag} 后面要跟邮箱地址`);
       process.exitCode = 1;
       return;
     }
-    process.exitCode = await activate(email);
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      console.log(`❌ "${email}" 不像一个邮箱地址。`);
+      process.exitCode = 1;
+      return;
+    }
+    process.exitCode = await (flag === "--activate" ? activate(email) : activatePage(email));
     return;
   }
 

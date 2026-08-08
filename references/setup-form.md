@@ -70,6 +70,11 @@ FormSubmit 两个服务端行为——**请求必须带 Referer 头**、**失败
 （成败在 body 的 `success` 字段）——已经在 `preflight.mjs` 的 `fsPost` 和模板的 `send()`
 里处理掉了，细节见那两处的代码注释。
 
+第三个坑视网络环境出现：FormSubmit 前面有 Cloudflare，可能把 Node 的请求整个拦下
+（403 "Just a moment" challenge）。脚本不绕它——`--activate` 检测到会提示改跑
+`--activate-page`，起一个本地页面让用户在**真浏览器**里点一下、由浏览器发第一次提交。
+线上页面的报名走访客自己的浏览器，不受影响；`--live` 被拦的话就用部署后的页面做真测试。
+
 ## 邮件长什么样、怎么分项目
 
 模板提交时带了这些控制字段：

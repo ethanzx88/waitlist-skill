@@ -19,6 +19,9 @@ Cursor、Gemini CLI、GitHub Copilot、OpenCode、Goose、Roo Code、Amp 等 40+
 
 **跨平台**：macOS / Linux / Windows 都能跑。所有命令走 Node 和 npx，不依赖平台特有的 shell。
 
+> **语言说明**：模板的占位符覆盖全部营销文案，页面骨架 UI（按钮、表单 label、提示句）是中文写死的。
+> 要生成其他语言的页面时，agent 会按 `SKILL.md` 的指令连这些 UI 串一起翻译。
+
 ---
 
 ## 安装

@@ -16,7 +16,7 @@ An Agent Skill that turns a one-sentence product idea into a landing page that c
 
 **Cross-platform**: macOS, Linux, and Windows. Every command runs through Node and npx, with no dependency on platform-specific shells.
 
-> **Note on language**: the skill's internal documentation (`SKILL.md`, `references/`) is written in Chinese. The template itself has no hardcoded copy, so you can ask for output in any language.
+> **Note on language**: the skill's internal documentation (`SKILL.md`, `references/`) is written in Chinese. The template's placeholders carry all the marketing copy, while its UI chrome (buttons, form labels, inline feedback strings) is written in Chinese — when you ask for a page in another language, the agent translates those strings as part of generation (`SKILL.md` instructs it to).
 
 ---
 
