@@ -1,0 +1,436 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Launchpad · 两小时验证一个想法</title>
+<meta name="description" content="给独立开发者的验证落地页生成器。一句话生成带定价和预售的 waitlist 页，数据进你自己的表格。">
+<meta property="og:title" content="Launchpad · 两小时验证一个想法">
+<meta property="og:description" content="给独立开发者的验证落地页生成器。一句话生成带定价和预售的 waitlist 页，数据进你自己的表格。">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+
+<script>
+/* ==========================================================================
+   唯一需要改的地方。朋友拿去用只改这四行。
+   ========================================================================== */
+const CONFIG = {
+  // Google Apps Script 部署后拿到的 Web App URL（见 references/setup-sheet.md）
+  // 想零配置的话填 "https://formsubmit.co/你的邮箱" 并把 mode 改成 "formsubmit"
+  endpoint: "https://script.google.com/macros/s/DEMO_FAKE_ENDPOINT/exec",
+  mode: "sheet",              // "sheet" | "formsubmit"
+
+  // 预售弹窗。不做预售就把这两行留空，按钮会自动隐藏。
+  stripeBuyButtonId: "",
+  stripePublishableKey: "",
+
+  projectSlug: "launchpad"          // 多个项目共用一张表时用来区分
+};
+</script>
+
+<style>
+:root {
+  --bg: #fbfaf8;
+  --surface: #ffffff;
+  --ink: #14110f;
+  --ink-soft: #5f574f;
+  --line: #e6e0d8;
+  --accent: #b8452f;
+  --accent-ink: #ffffff;
+  --shadow: 0 1px 2px rgba(20,17,15,.05), 0 8px 24px rgba(20,17,15,.06);
+  --radius: 14px;
+  --maxw: 62rem;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #14120f;
+    --surface: #1c1a16;
+    --ink: #f4f0ea;
+    --ink-soft: #a9a096;
+    --line: #302c26;
+    --accent: #e0705a;
+    --accent-ink: #1a0d09;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.35);
+  }
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", "PingFang SC",
+               "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  font-size: 17px;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+.wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 1.25rem; }
+
+/* ---------- nav ---------- */
+nav {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 1.25rem 0; gap: 1rem;
+}
+.wordmark { font-weight: 650; letter-spacing: -.01em; font-size: 1.05rem; }
+.nav-link {
+  color: var(--ink-soft); text-decoration: none; font-size: .95rem;
+  border-bottom: 1px solid transparent; transition: color .15s, border-color .15s;
+}
+.nav-link:hover { color: var(--ink); border-color: var(--line); }
+
+/* ---------- hero ---------- */
+header.hero { padding: 4rem 0 4.5rem; max-width: 44rem; }
+.eyebrow {
+  display: inline-block; font-size: .8rem; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--accent); font-weight: 600;
+  margin-bottom: 1.1rem;
+}
+h1 {
+  font-size: clamp(2.1rem, 5.5vw, 3.4rem);
+  line-height: 1.1; letter-spacing: -.025em; font-weight: 700;
+  margin: 0 0 1.2rem;
+}
+.hero-sub { font-size: 1.15rem; color: var(--ink-soft); margin: 0 0 2rem; }
+
+.btn {
+  display: inline-flex; align-items: center; gap: .5rem;
+  padding: .85rem 1.5rem; border-radius: 10px; border: 1px solid transparent;
+  font: inherit; font-weight: 600; font-size: 1rem;
+  cursor: pointer; text-decoration: none; transition: transform .12s, opacity .15s;
+}
+.btn:active { transform: translateY(1px); }
+.btn-primary { background: var(--accent); color: var(--accent-ink); }
+.btn-primary:hover { opacity: .9; }
+.btn-ghost { background: transparent; color: var(--ink); border-color: var(--line); }
+.btn-ghost:hover { border-color: var(--ink-soft); }
+.btn-row { display: flex; flex-wrap: wrap; gap: .75rem; align-items: center; }
+.micro { font-size: .875rem; color: var(--ink-soft); margin-top: 1rem; }
+
+/* ---------- sections ---------- */
+section { padding: 3.5rem 0; border-top: 1px solid var(--line); }
+h2 {
+  font-size: clamp(1.4rem, 3vw, 1.85rem); letter-spacing: -.02em;
+  font-weight: 680; margin: 0 0 .5rem;
+}
+.section-sub { color: var(--ink-soft); margin: 0 0 2rem; max-width: 40rem; }
+
+.grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); }
+.card {
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--radius); padding: 1.4rem;
+}
+.card h3 { margin: 0 0 .45rem; font-size: 1.02rem; font-weight: 650; letter-spacing: -.01em; }
+.card p { margin: 0; color: var(--ink-soft); font-size: .95rem; }
+.step-n {
+  display: inline-grid; place-items: center; width: 1.7rem; height: 1.7rem;
+  border-radius: 50%; background: var(--accent); color: var(--accent-ink);
+  font-size: .8rem; font-weight: 700; margin-bottom: .8rem;
+}
+
+/* ---------- pricing ---------- */
+.price-card {
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--radius); padding: 2rem; box-shadow: var(--shadow);
+  max-width: 26rem;
+}
+.price-amount { font-size: 3rem; font-weight: 700; letter-spacing: -.03em; line-height: 1; }
+.price-unit { font-size: 1rem; color: var(--ink-soft); font-weight: 500; }
+.price-note { color: var(--ink-soft); font-size: .9rem; margin: .6rem 0 1.4rem; }
+.feature-list { list-style: none; margin: 0 0 1.75rem; padding: 0; display: grid; gap: .55rem; }
+.feature-list li { display: flex; gap: .6rem; font-size: .95rem; align-items: flex-start; }
+.feature-list li::before { content: "→"; color: var(--accent); flex: none; font-weight: 700; }
+.price-actions { display: grid; gap: .7rem; }
+#buy-slot:empty { display: none; }
+
+/* ---------- modal ---------- */
+.overlay {
+  position: fixed; inset: 0; background: rgba(20,17,15,.55);
+  backdrop-filter: blur(3px); display: none;
+  align-items: center; justify-content: center; padding: 1.25rem; z-index: 50;
+}
+.overlay[data-open="true"] { display: flex; }
+.modal {
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--radius); box-shadow: var(--shadow);
+  width: 100%; max-width: 27rem; padding: 1.75rem; position: relative;
+  animation: pop .18s ease-out;
+}
+@keyframes pop { from { opacity: 0; transform: translateY(10px) scale(.98); } }
+@media (prefers-reduced-motion: reduce) { .modal { animation: none; } }
+.modal h3 { margin: 0 0 .4rem; font-size: 1.25rem; letter-spacing: -.02em; }
+.modal p.lede { margin: 0 0 1.3rem; color: var(--ink-soft); font-size: .93rem; }
+.close {
+  position: absolute; top: .75rem; right: .75rem; background: none; border: 0;
+  color: var(--ink-soft); font-size: 1.5rem; line-height: 1; cursor: pointer; padding: .25rem .5rem;
+}
+label { display: block; font-size: .88rem; font-weight: 600; margin: 0 0 .35rem; }
+input, textarea {
+  width: 100%; padding: .7rem .85rem; border-radius: 9px;
+  border: 1px solid var(--line); background: var(--bg); color: var(--ink);
+  font: inherit; font-size: .95rem;
+}
+input:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; border-color: transparent; }
+textarea { resize: vertical; min-height: 4.5rem; }
+.field { margin-bottom: 1rem; }
+.hint { font-size: .8rem; color: var(--ink-soft); font-weight: 400; margin-top: .3rem; }
+.modal .btn { width: 100%; justify-content: center; }
+.form-msg { font-size: .9rem; margin-top: .9rem; display: none; }
+.form-msg[data-show="true"] { display: block; }
+.form-msg.err { color: var(--accent); }
+.hp { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
+
+footer {
+  border-top: 1px solid var(--line); padding: 2.5rem 0 3.5rem;
+  color: var(--ink-soft); font-size: .875rem;
+  display: flex; flex-wrap: wrap; gap: .75rem; justify-content: space-between;
+}
+footer a { color: var(--ink-soft); }
+</style>
+</head>
+
+<body>
+<div class="wrap">
+
+  <nav>
+    <span class="wordmark">Launchpad</span>
+    <a class="nav-link" href="#pricing">定价</a>
+  </nav>
+
+  <!-- ============ HERO ============
+       注意: 这里的主按钮故意不是邮箱输入框。
+       先让人点一下「看看多少钱」，看过价格还愿意留邮箱的，才是真信号。 -->
+  <header class="hero">
+    <span class="eyebrow">给一个人干活的独立开发者</span>
+    <h1>想法还没写代码，先知道有没有人要</h1>
+    <p class="hero-sub">描述一句你的产品，十分钟后你有一个带定价、能收邮箱、能收预付款的落地页。数据进你自己的 Google Sheet。</p>
+    <div class="btn-row">
+      <a href="#pricing" class="btn btn-primary" data-track="cta_click">看看多少钱 →</a>
+      <a href="#how" class="btn btn-ghost">它怎么运作</a>
+    </div>
+    <p class="micro">还没上线。这一页本身就是在验证它值不值得做。</p>
+  </header>
+
+  <!-- ============ 问题 ============ -->
+  <section id="problem">
+    <h2>你不是不会做，你是不知道该做哪个</h2>
+    <p class="section-sub">手上五个想法，每个都得写两周才知道行不行。于是你哪个都没开始。</p>
+    <div class="grid">
+      <div class="card"><h3>验证比开发还费劲</h3><p>想测一个想法，要挑建站工具、配表单、接支付、查域名、想文案。折腾两天还没发出去，热情已经耗完了。</p></div>
+      <div class="card"><h3>收上来一堆邮箱，看不出真假</h3><p>三百个 waitlist 注册，上线后三个人付钱。事后才发现那三百个人只是随手点了一下。</p></div>
+      <div class="card"><h3>想给朋友用，得先交出账号</h3><p>你的模板绑着你的表单服务和你的 key。朋友想用一份，你得帮他从头配一遍。</p></div>
+    </div>
+  </section>
+
+  <!-- ============ 怎么运作 ============ -->
+  <section id="how">
+    <h2>怎么用</h2>
+    <p class="section-sub">三步，中间不需要你打开任何后台配置界面。</p>
+    <div class="grid">
+      <div class="card"><span class="step-n">1</span><h3>说一句话</h3><p>给谁、解决什么、打算收多少钱。剩下的文案框架它替你搭。</p></div>
+      <div class="card"><span class="step-n">2</span><h3>给一个空表格</h3><p>粘一段脚本进你的 Google Sheet，两分钟。之后所有注册和点击都落进这张表。</p></div>
+      <div class="card"><span class="step-n">3</span><h3>拿走一个 HTML 文件</h3><p>丢到任何静态托管都能跑。想给朋友用，他改四行配置换成自己的。</p></div>
+    </div>
+  </section>
+
+  <!-- ============ 定价 ============
+       价格必须写出来。没有价格的落地页测出来的只是「免费我就要」。 -->
+  <section id="pricing">
+    <h2>定价</h2>
+    <p class="section-sub">一次买断，不订阅。产品还没上线，现在预订锁定这个价。</p>
+    <div class="price-card">
+      <div>
+        <span class="price-amount">$29</span>
+        <span class="price-unit">一次性</span>
+      </div>
+      <p class="price-note">比你自己折腾两天便宜。按 $50/小时算，省下的第一次就回本了。</p>
+      <ul class="feature-list">
+        <li>落地页生成，含定价区和两段式 CTA</li>
+        <li>批量查域名可用性，直接给购买链接</li>
+        <li>埋点自动进你的 Google Sheet，可算漏斗转化率</li>
+        <li>生成物可转手，不含任何人的 credential</li>
+      </ul>
+      <div class="price-actions">
+        <button class="btn btn-primary" data-open-modal>加入 waitlist</button>
+        <!-- Stripe Buy Button 会注入这里，点击后 Stripe 自己弹窗结账。没配就不显示。 -->
+        <div id="buy-slot"></div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <span>&copy; <span id="year"></span> Launchpad</span>
+    <span>有问题直接回邮件，我本人看</span>
+  </footer>
+
+</div>
+
+<!-- ============ 邮箱弹窗 ============ -->
+<div class="overlay" id="overlay" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+  <div class="modal">
+    <button class="close" data-close-modal aria-label="关闭">&times;</button>
+    <h3 id="modal-title">加入 waitlist</h3>
+    <p class="lede">还没上线，预计九月。留个邮箱，上线当天第一批通知你。不会拿去发别的东西。</p>
+
+    <form id="waitlist-form" novalidate>
+      <div class="field">
+        <label for="email">邮箱</label>
+        <input type="email" id="email" name="email" required autocomplete="email" placeholder="you@example.com">
+      </div>
+
+      <!-- 这一栏比邮箱本身值钱十倍。别删。 -->
+      <div class="field">
+        <label for="context">你现在是怎么解决这个问题的？</label>
+        <textarea id="context" name="context" required
+          placeholder="随便写两句就行，越具体越好"></textarea>
+        <p class="hint">我会亲自读每一条，可能会回你一封信。</p>
+      </div>
+
+      <input type="text" name="company" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
+
+      <button type="submit" class="btn btn-primary" id="submit-btn">加入</button>
+      <p class="form-msg" id="form-msg"></p>
+    </form>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  const $ = (s) => document.querySelector(s);
+  const overlay = $("#overlay");
+  const form = $("#waitlist-form");
+  const msg = $("#form-msg");
+  const submitBtn = $("#submit-btn");
+
+  document.getElementById("year").textContent = new Date().getFullYear();
+
+  /* ---------- 埋点 ----------
+     view / cta_click / signup 三个事件都进同一张表，
+     这样你可以直接算出 曝光 → 点击 → 留邮箱 的漏斗转化率。 */
+  function track(event, extra) {
+    const payload = Object.assign({
+      event: event,
+      project: CONFIG.projectSlug,
+      page: location.pathname + location.search,
+      referrer: document.referrer || "direct",
+      ua: navigator.userAgent
+    }, extra || {});
+    return send(payload);
+  }
+
+  function send(payload) {
+    if (!CONFIG.endpoint || CONFIG.endpoint.indexOf("{{") === 0) {
+      console.warn("[waitlist] endpoint 没配置，这条没发出去:", payload);
+      return Promise.resolve();
+    }
+    if (CONFIG.mode === "formsubmit") {
+      return fetch(CONFIG.endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify(payload)
+      });
+    }
+    // Apps Script: 用 text/plain 发 JSON，属于 CORS simple request，不触发 preflight。
+    // no-cors 下读不到响应体，所以只能乐观判定成功，网络层失败仍会 reject。
+    return fetch(CONFIG.endpoint, {
+      method: "POST",
+      mode: "no-cors",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify(payload)
+    });
+  }
+
+  // 每个会话只记一次 view，避免刷新灌水
+  try {
+    if (!sessionStorage.getItem("wl_viewed")) {
+      sessionStorage.setItem("wl_viewed", "1");
+      track("view");
+    }
+  } catch (e) { track("view"); }
+
+  document.querySelectorAll("[data-track]").forEach(function (el) {
+    el.addEventListener("click", function () { track(el.getAttribute("data-track")); });
+  });
+
+  /* ---------- 弹窗 ---------- */
+  function openModal() {
+    overlay.setAttribute("data-open", "true");
+    document.body.style.overflow = "hidden";
+    setTimeout(function () { $("#email").focus(); }, 50);
+    track("modal_open");
+  }
+  function closeModal() {
+    overlay.removeAttribute("data-open");
+    document.body.style.overflow = "";
+  }
+  document.querySelectorAll("[data-open-modal]").forEach(function (b) {
+    b.addEventListener("click", openModal);
+  });
+  document.querySelectorAll("[data-close-modal]").forEach(function (b) {
+    b.addEventListener("click", closeModal);
+  });
+  overlay.addEventListener("click", function (e) { if (e.target === overlay) closeModal(); });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && overlay.getAttribute("data-open") === "true") closeModal();
+  });
+
+  /* ---------- 提交 ---------- */
+  form.addEventListener("submit", function (e) {
+    e.preventDefault();
+    msg.removeAttribute("data-show");
+    msg.classList.remove("err");
+
+    const email = $("#email").value.trim();
+    const context = $("#context").value.trim();
+
+    if (form.querySelector('[name="company"]').value) return; // 蜜罐，机器人填了就静默丢弃
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return fail("这个邮箱看起来不太对");
+    if (context.length < 4) return fail("那一栏随便写两句就行，真的想看看你现在怎么解决的");
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = "提交中…";
+
+    track("signup", { email: email, context: context })
+      .then(function () {
+        form.innerHTML =
+          '<h3 style="margin:.2rem 0 .5rem">收到了 🎉</h3>' +
+          '<p style="color:var(--ink-soft);margin:0;font-size:.95rem">这两天我会亲自回你一封信，追问两句你现在的做法。看到陌生邮箱别当垃圾邮件删了 🙏</p>';
+      })
+      .catch(function () {
+        submitBtn.disabled = false;
+        submitBtn.textContent = "再试一次";
+        fail("网络好像有点问题，再点一次试试");
+      });
+  });
+
+  function fail(text) {
+    msg.textContent = text;
+    msg.classList.add("err");
+    msg.setAttribute("data-show", "true");
+  }
+
+  /* ---------- Stripe 预售弹窗 ----------
+     配了才加载。stripe-buy-button 点击后由 Stripe 自己弹出结账浮层，零后端。 */
+  if (CONFIG.stripeBuyButtonId && CONFIG.stripeBuyButtonId.indexOf("{{") !== 0 &&
+      CONFIG.stripePublishableKey && CONFIG.stripePublishableKey.indexOf("{{") !== 0) {
+    const s = document.createElement("script");
+    s.async = true;
+    s.src = "https://js.stripe.com/v3/buy-button.js";
+    document.head.appendChild(s);
+
+    const btn = document.createElement("stripe-buy-button");
+    btn.setAttribute("buy-button-id", CONFIG.stripeBuyButtonId);
+    btn.setAttribute("publishable-key", CONFIG.stripePublishableKey);
+    document.getElementById("buy-slot").appendChild(btn);
+
+    document.getElementById("buy-slot").addEventListener("click", function () {
+      track("preorder_click");
+    });
+  }
+})();
+</script>
+</body>
+</html>
